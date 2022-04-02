@@ -5,6 +5,7 @@ This software rendering is my personal project following [the wiki](https://gith
 ## Description
 This document is a detailed review of the significant commits to this repository from the very beginning of the project. 
 
-## Commit 1 : Line drawing and framebuffer (included Barycentric coordinate interpolation)
+## Commit 1 : Line drawing and framebuffer (included barycentric coordinate interpolation)
 | New file && file update | New Function Description |
+| :-----------------------|:-------------------------|
 
