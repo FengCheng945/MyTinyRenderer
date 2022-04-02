@@ -1,4 +1,4 @@
-# MyTinyRender
+# MyTinyRenderer
 
 This software rendering is my personal project following [the wiki](https://github.com/ssloy/tinyrenderer). The main use of the course given obj resources and TGAImage file output framework. I wrote the code for the render pipeline by hand, and I'm constantly adding new features.
 
