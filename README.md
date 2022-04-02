@@ -33,8 +33,8 @@ This document is a detailed review of the significant commits to this repository
         }
     }
 #### bool insideTriangle(float x, float y, const Vec2i* v): find barycentric coordinates of the point P with respect to the triangle ABC. And determine whether a point is in a triangle by the barycentric coordinates.
-especially, if INF is not used, there will be accuracy problems:
-<img width="300" alt="theface" src="https://user-images.githubusercontent.com/74391884/161389559-868fdc5f-7f6d-464e-b410-c0273977c401.png"><br>
+especially, if INF is not used, there will be accuracy problems:<br>
+<img width="400" alt="theface" src="https://user-images.githubusercontent.com/74391884/161389559-868fdc5f-7f6d-464e-b410-c0273977c401.png"><br>
 We can see a lot of unrendered black dots and lines from the image. But there was a significant improvement with INF:
 <img width="651" alt="theface" src="https://user-images.githubusercontent.com/74391884/161389500-3bc44ea7-73a0-414a-8aba-8cd772b82d3d.png"><br>
 
@@ -47,7 +47,7 @@ We can see a lot of unrendered black dots and lines from the image. But there wa
         else return false;
     }
 
-#### Main effects
+### Main effects
 <img width="937" alt="f0" src="https://user-images.githubusercontent.com/74391884/161389475-08a7220e-c172-4e27-bf4c-dc0ad045e9c9.png">
 <b>About back-face culling:</b>
 In computer graphics, back-face culling determines whether a polygon of a graphical object is visible. We get normal vector of the flat through the world coordinates of the three vertices of the triangle, and judge it by the dot product of the light direction and the normal vector.
