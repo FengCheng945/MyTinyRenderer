@@ -8,6 +8,7 @@ This document is a detailed review of the significant commits to this repository
 
 ## Commit 1 : Line drawing and framebuffer (included barycentric coordinate interpolation)
 #### Function Update Description：
+##### the triangle() : find barycentric coordinates of the point P with respect to the triangle ABC. And determine whether a point is in a triangle by the barycentric coordinates.
 
     void TGAImage::triangle(Vec2i* vertex, TGAImage& image, TGAColor color)
     {
@@ -31,6 +32,11 @@ This document is a detailed review of the significant commits to this repository
             }
         }
     }
+##### bool insideTriangle(float x, float y, const Vec2i* v): find barycentric coordinates of the point P with respect to the triangle ABC. And determine whether a point is in a triangle by the barycentric coordinates.
+especially, if INF is not used, there will be accuracy problems:
+tupian
+We can see a lot of unrendered black dots and lines from the image. But there was a significant improvement with INF:
+tupian
 
     bool insideTriangle(float x, float y, const Vec2i* v) //定义全局函数，并在头文件geometry中声明
     {   //constexpr double INF = 1e-9;
@@ -40,6 +46,14 @@ This document is a detailed review of the significant commits to this repository
         if (c1 - 1.0 < INF  && c1 > -INF && c2 - 1.0  < INF && c2> -INF && c3 - 1.0 < INF && c3 > -INF) return true; //INF防止浮点数陷阱
         else return false;
     }
+
+#### Main effects
+tupian
+<b>About back-face culling:</b>
+In computer graphics, back-face culling determines whether a polygon of a graphical object is visible. We get normal vector of the flat through the world coordinates of the three vertices of the triangle, and judge it by the dot product of the light direction and the normal vector.
+$N=(V_1 - V_0) \times (V_2 - V_0)$
+$(V_0-P) \cdot N <0 $ => back-face culling
+But we uniformly define the vertex storage order as counter-clockwise storage (front-facing polygons have a counter-clockwise winding: v0->v1->v2 is counter-clockwise). The normal vector that we get by cross product is going to be coming out of the object. The dot product will depend on the position of the flat with respect to the light source. 
 <table>
   <tbody>
     <tr>
@@ -49,6 +63,7 @@ This document is a detailed review of the significant commits to this repository
 	<tr>
       <td align="left">
       <ul>
+                main.cpp<br>
 	    		geometry.h<br>
                 tgaimage.h/cpp<br>
 	    	</ul>
