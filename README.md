@@ -51,9 +51,9 @@ tupian
 tupian
 <b>About back-face culling:</b>
 In computer graphics, back-face culling determines whether a polygon of a graphical object is visible. We get normal vector of the flat through the world coordinates of the three vertices of the triangle, and judge it by the dot product of the light direction and the normal vector.
-![](http://latex.codecogs.com/svg.latex?N=(V_1 - V_0) \times (V_2 - V_0))
-$$
-$(V_0-P) \cdot N <0 $ => back-face culling
+
+![image](https://user-images.githubusercontent.com/74391884/161389414-0bc07848-b780-48e1-ac0d-d579f2f01a92.png)
+
 But we uniformly define the vertex storage order as counter-clockwise storage (front-facing polygons have a counter-clockwise winding: v0->v1->v2 is counter-clockwise). The normal vector that we get by cross product is going to be coming out of the object. The dot product will depend on the position of the flat with respect to the light source. 
 <table>
   <tbody>
