@@ -5,7 +5,6 @@ This software rendering is my personal project following [the wiki](https://gith
 ## Description
 This document is a detailed review of the significant commits to this repository from the very beginning of the project. 
 
-
 ## Commit 1 : Line drawing and framebuffer (included barycentric coordinate interpolation)
 ### Function Update Description：
 #### the triangle() : find barycentric coordinates of the point P with respect to the triangle ABC. And determine whether a point is in a triangle by the barycentric coordinates.
@@ -51,9 +50,7 @@ We can see a lot of unrendered black dots and lines from the image. But there wa
 <img width="937" alt="f0" src="https://user-images.githubusercontent.com/74391884/161389475-08a7220e-c172-4e27-bf4c-dc0ad045e9c9.png">
 <b>About back-face culling:</b>
 In computer graphics, back-face culling determines whether a polygon of a graphical object is visible. We get normal vector of the flat through the world coordinates of the three vertices of the triangle, and judge it by the dot product of the light direction and the normal vector.
-
 ![image](https://user-images.githubusercontent.com/74391884/161389414-0bc07848-b780-48e1-ac0d-d579f2f01a92.png)
-
 But we uniformly define the vertex storage order as counter-clockwise storage (front-facing polygons have a counter-clockwise winding: v0->v1->v2 is counter-clockwise). The normal vector that we get by cross product is going to be coming out of the object. The dot product will depend on the position of the flat with respect to the light source. 
 <table>
   <tbody>
