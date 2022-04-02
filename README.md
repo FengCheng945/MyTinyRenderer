@@ -8,7 +8,7 @@ This document is a detailed review of the significant commits to this repository
 
 ## Commit 1 : Line drawing and framebuffer (included barycentric coordinate interpolation)
 #### Function Update Description：
-##### the triangle() : find barycentric coordinates of the point P with respect to the triangle ABC. And determine whether a point is in a triangle by the barycentric coordinates.
+#### the triangle() : find barycentric coordinates of the point P with respect to the triangle ABC. And determine whether a point is in a triangle by the barycentric coordinates.
 
     void TGAImage::triangle(Vec2i* vertex, TGAImage& image, TGAColor color)
     {
@@ -32,7 +32,7 @@ This document is a detailed review of the significant commits to this repository
             }
         }
     }
-##### bool insideTriangle(float x, float y, const Vec2i* v): find barycentric coordinates of the point P with respect to the triangle ABC. And determine whether a point is in a triangle by the barycentric coordinates.
+#### bool insideTriangle(float x, float y, const Vec2i* v): find barycentric coordinates of the point P with respect to the triangle ABC. And determine whether a point is in a triangle by the barycentric coordinates.
 especially, if INF is not used, there will be accuracy problems:
 <img width="651" alt="theface" src="https://user-images.githubusercontent.com/74391884/161389559-868fdc5f-7f6d-464e-b410-c0273977c401.png"><br>
 We can see a lot of unrendered black dots and lines from the image. But there was a significant improvement with INF:
