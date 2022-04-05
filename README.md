@@ -88,9 +88,9 @@ Add the initialization of the Zbuffer and space allocation of the Z table to the
           if (zbuffer) delete[] zbuffer;
       }
 
-Record a z value for each pixel and render only the pixels with the lowest z value:
+<b>Record a z value for each pixel and render only the pixels with the lowest z value:</b><br>
 <img width="400" alt="theface" src="https://user-images.githubusercontent.com/74391884/161718651-2a956e46-0301-4899-bfc3-1f2f0be8ac46.png"><br>
-Found that the tutorial images had color differences, so gamma correction was added<br>
+<b>Found that the tutorial images had color differences, so gamma correction was added</b><br>
 <img width="400" alt="theface" src="https://user-images.githubusercontent.com/74391884/161719094-b49626d0-5ed9-4f9a-94f6-4a35cf841fda.png"><br>
 
     void TGAImage::triangle(Vector3f* vertex, TGAImage& image, TGAColor color)
