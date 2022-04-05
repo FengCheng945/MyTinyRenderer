@@ -66,7 +66,7 @@ protected:
 	int width;
 	int height;
 	int bytespp;
-	float *zbuffer;
+
 	bool   load_rle_data(std::ifstream &in);
 	bool unload_rle_data(std::ofstream &out);
 public:
@@ -91,10 +91,9 @@ public:
 	int get_bytespp();
 	unsigned char *buffer();
 	void clear();
-	void line(Vector2i t0, Vector2i t1, TGAImage& image, TGAColor color);
-	void LineTriangle(Vector2i t0, Vector2i t1, Vector2i t2, TGAImage& image, TGAColor color);
-	void triangle(Vector3f* vertex, TGAImage& image, TGAColor color);
-
+	void line(Vec2i t0, Vec2i t1, TGAImage& image, TGAColor color);
+	void LineTriangle(Vec2i t0, Vec2i t1, Vec2i t2, TGAImage& image, TGAColor color);
+	void triangle(Vec2i* vertex, TGAImage& image, TGAColor color);
 };
 
 #endif //__IMAGE_H__

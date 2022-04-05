@@ -1,22 +1,17 @@
 #include <iostream>
 #include <fstream>
-#include <limits>
 #include <string.h>
 #include <time.h>
 #include <math.h>
 #include "tgaimage.h"
 
-constexpr float INF = 1e-4;
-
-TGAImage::TGAImage() : data(nullptr), zbuffer(nullptr), width(0), height(0), bytespp(0) {
+TGAImage::TGAImage() : data(NULL), width(0), height(0), bytespp(0) {
 }
 
-TGAImage::TGAImage(int w, int h, int bpp) : data(nullptr), zbuffer(nullptr), width(w), height(h), bytespp(bpp) {
+TGAImage::TGAImage(int w, int h, int bpp) : data(NULL), width(w), height(h), bytespp(bpp) {
 	unsigned long nbytes = width*height*bytespp;
 	data = new unsigned char[nbytes];
 	memset(data, 0, nbytes);
-	zbuffer = new float[width * height];
-	memset(zbuffer, std::numeric_limits<float>::infinity(), sizeof zbuffer);
 }
 
 TGAImage::TGAImage(const TGAImage &img) {
@@ -26,13 +21,10 @@ TGAImage::TGAImage(const TGAImage &img) {
 	unsigned long nbytes = width*height*bytespp;
 	data = new unsigned char[nbytes];
 	memcpy(data, img.data, nbytes);
-	zbuffer = new float[width * height];
-	memcpy(zbuffer, img.zbuffer, sizeof zbuffer);
 }
 
 TGAImage::~TGAImage() {
 	if (data) delete [] data;
-	if (zbuffer) delete[] zbuffer;
 }
 
 TGAImage & TGAImage::operator =(const TGAImage &img) {
@@ -44,8 +36,6 @@ TGAImage & TGAImage::operator =(const TGAImage &img) {
 		unsigned long nbytes = width*height*bytespp;
 		data = new unsigned char[nbytes];
 		memcpy(data, img.data, nbytes);
-		zbuffer = new float[width * height];
-		memcpy(zbuffer, img.zbuffer, sizeof zbuffer);
 	}
 	return *this;
 }
@@ -321,7 +311,6 @@ unsigned char *TGAImage::buffer() {
 
 void TGAImage::clear() {
 	memset((void *)data, 0, width*height*bytespp);
-	if(zbuffer) memset(zbuffer, std::numeric_limits<float>::infinity(), sizeof zbuffer);
 }
 
 bool TGAImage::scale(int w, int h) {
@@ -360,7 +349,7 @@ bool TGAImage::scale(int w, int h) {
 	height = h;
 	return true;
 }
-void TGAImage::line(Vector2i t0, Vector2i t1, TGAImage& image, TGAColor color)
+void TGAImage::line(Vec2i t0, Vec2i t1, TGAImage& image, TGAColor color)
 {
 	bool steep = false; 
 	if (std::abs(t0.x - t1.x) < std::abs(t0.y - t1.y))//表示当斜率>1时，就对调xy转换为<1
@@ -397,7 +386,7 @@ void TGAImage::line(Vector2i t0, Vector2i t1, TGAImage& image, TGAColor color)
 		}
 	}
 }
-void TGAImage::LineTriangle(Vector2i t0, Vector2i t1, Vector2i t2, TGAImage& image, TGAColor color)
+void TGAImage::LineTriangle(Vec2i t0, Vec2i t1, Vec2i t2, TGAImage& image, TGAColor color)
 {
 	if (t0.y > t1.y) std::swap(t0, t1);
 	if (t0.y > t2.y) std::swap(t0, t2);
@@ -407,73 +396,25 @@ void TGAImage::LineTriangle(Vector2i t0, Vector2i t1, Vector2i t2, TGAImage& ima
 	line(t2, t0, image, color);
 }
 
-static bool insideTriangle_byCross(float x, float y, const Vector3f* _v)
+void TGAImage::triangle(Vec2i* vertex, TGAImage& image, TGAColor color)
 {
-	Vector3f v[3];
-	for (int i = 0; i < 3; i++)
-		v[i] = { _v[i].x,_v[i].y, 1.0 };
-	Vector3f f0, f1, f2;
-	f0 = v[1].cross(v[0]);
-	f1 = v[2].cross(v[1]);
-	f2 = v[0].cross(v[2]);
-	Vector3f p(x, y, 1.);
-	if (((p*f0) * (f0*v[2]) > 0) && ((p*f1) * (f1*v[0]) > 0) && ((p*f2) * (f2*v[1]) > 0))
-		return true;
-	return false;
-} 
-
-static bool insideTriangle(float x, float y, const Vector3f* v) 
-{
-
-	float c2 = (x * (v[2].y - v[0].y) + (v[0].x - v[2].x) * y + v[2].x * v[0].y - v[0].x * v[2].y) / (v[1].x * (v[2].y - v[0].y) + (v[0].x - v[2].x) * v[1].y + v[2].x * v[0].y - v[0].x * v[2].y);
-	float c3 = (x * (v[0].y - v[1].y) + (v[1].x - v[0].x) * y + v[0].x * v[1].y - v[1].x * v[0].y) / (v[2].x * (v[0].y - v[1].y) + (v[1].x - v[0].x) * v[2].y + v[0].x * v[1].y - v[1].x * v[0].y);
-	float c1 = 1.f - c2 - c3;
-
-	if (c1 - 1.f < INF && c1 > -INF && c2 - 1.f < INF && c2 > -INF && c3 - 1.f < INF && c3 > -INF) return true; //INF防止浮点数陷阱
-	else return false;
-
-}
-
-static Vector3f computeBarycentric2D(float x, float y, const Vector3f* v)
-{
-
-	float c2 = (x * (v[2].y - v[0].y) + (v[0].x - v[2].x) * y + v[2].x * v[0].y - v[0].x * v[2].y) / (v[1].x * (v[2].y - v[0].y) + (v[0].x - v[2].x) * v[1].y + v[2].x * v[0].y - v[0].x * v[2].y);
-	float c3 = (x * (v[0].y - v[1].y) + (v[1].x - v[0].x) * y + v[0].x * v[1].y - v[1].x * v[0].y) / (v[2].x * (v[0].y - v[1].y) + (v[1].x - v[0].x) * v[2].y + v[0].x * v[1].y - v[1].x * v[0].y);
-	float c1 = 1.f - c2 - c3;
-
-	return Vector3f{ c1,c2,c3 };
-}
-
-void TGAImage::triangle(Vector3f* vertex, TGAImage& image, TGAColor color)
-{
-	
-	Vector2f bboxleft(std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-	Vector2f bboxright(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
-	Vector2f clamp(image.get_width() - 1, image.get_height() - 1);
+	Vec2i bboxleft(image.get_width() - 1, image.get_height() - 1);
+	Vec2i bboxright(0, 0);
 	for (int i = 0; i < 3; i++) //选取左下角与右上角的点构建包围盒
 	{
-		bboxleft.x = std::max(0.f, std::min(bboxleft.x, vertex[i].x));
-		bboxleft.y = std::max(0.f, std::min(bboxleft.y, vertex[i].y));
+		bboxleft.x = std::max(0, std::min(bboxleft.x, vertex[i].x));
+		bboxleft.y = std::max(0, std::min(bboxleft.y, vertex[i].y));
 
-		bboxright.x = std::min(clamp.x, std::max(bboxright.x, vertex[i].x));
-		bboxright.y = std::min(clamp.y, std::max(bboxright.y, vertex[i].y));
+		bboxright.x = std::min(image.get_width() - 1, std::max(bboxright.x, vertex[i].x));
+		bboxright.y = std::min(image.get_height() - 1, std::max(bboxright.y, vertex[i].y));
 	}
-	Vector3i P;
+	Vec2i P;
 	for (P.x = bboxleft.x; P.x <= bboxright.x; P.x++)
 	{
 		for (P.y = bboxleft.y; P.y <= bboxright.y; P.y++)
 		{
-			P.z = 0;
-			if (insideTriangle((float)P.x + 0.5, (float)P.y + 0.5, vertex))
-			{
-				Vector3f Barycentric = computeBarycentric2D((float)P.x + 0.5, (float)P.y + 0.5, vertex);
-				P.z = vertex[0].z * Barycentric.x + vertex[1].z * Barycentric.y + vertex[2].z * Barycentric.z;//用三个顶点的z轴坐标插值出P点z值
-				if (zbuffer[(P.x + P.y * width)] < P.z)
-				{
-					zbuffer[(P.x + P.y * width)] = P.z;
-					image.set(P.x, P.y, color);
-				}
-			}
+			if (insideTriangle((float)P.x + 0.5, (float)P.y + 0.5, vertex))//使用像素中心点判断是否在三角形内部
+				image.set(P.x, P.y, color);//这里framebuff要用整型
 		}
 	}
 }

@@ -4,7 +4,127 @@ This software rendering is my personal project following [the wiki](https://gith
 
 ## Description
 This document is a detailed review of the significant commits to this repository from the very beginning of the project. 
+## Commit 2 : Code refactoring and zbuffer
+This update reconstructs the mathematics of the entire code framework, abandoning the old implementation in the tutorial.<br>
+<table>
+  <tbody>
+    <tr>
+      <th align="center">file update</th>
+      <th align="center">Description</th>
+    </tr>
+	<tr>
+      <td align="left">
+      <ul>
+                main.cpp<br>
+                geometry.h<br>
+                model.h/cpp<br>
+                tgaimage.h/cpp<br>
+	    	</ul>
+      </td>
+	    <td align="left">
+	    	<ul>
+	    		<b> Update Class/Struct:</b>
+                <li><b>geometry.h</b></li>
+                <ul>
+                    <li><b>template &lttypename T, size_t LEN&gt struct Vector</b>: The main template class provides a generic interface to a particular Vector(Vector3f/Vector2f...). Generic function templates and operator overloading are provided for this type.
+                    <li><b>template &lttypename T&gt struct Vector&ltT, 2&gt</b>: The specialized template class overload some methods that are specific to two-dimensional vectors.
+                    <li><b>template &lttypename T&gt struct Vector&ltT, 3&gt</b>: The specialized template class overload some methods that are specific to three-dimensional vectors.
+                </ul>
+	    		<li><b>tgaimage.h/cpp</b>
+                    <ul><li><b>float* zbuffer</b>: Points to a one-dimensional ZBuffer array (width*height) and allocates memory when the object is created.
+                    </ul>
+          <b> Update Function:</b>
+                <li><b>tgaimage.h/cpp</b></li>
+                <ul>
+                    <li><b>static Vector3f computeBarycentric2D(float x, float y, const Vector3f* v)</b>: return barycentric coordinate interpolation.
+                    <li><b>void TGAImage::triangle(Vector3f* vertex, TGAImage& image, TGAColor color)</b>: Added zbuffer method: Interpolate z values of P by z values of three vertices and render the point with the lower z value. 
+                </ul>
+                <li><b>geometry.h</b></li>
+                <ul>
+                <li><b>inline Vector&ltT, LEN&gt operator+(Vector&ltT, LEN&gt res, const Vector&ltT, LEN&gt& v)</b>
+                <li><b>inline Vector&ltT, LEN&gt operator-(Vector&ltT, LEN&gt res, const Vector&ltT, LEN&gt& v)</b>
+                <li><b>inline Vector&ltT, LEN&gt operator*(Vector&ltT, LEN&gt res, float f)</b>
+                <li><b>inline Vector&ltT, LEN&gt operator*(Vector&ltT, LEN&gt& res, const Vector&ltT, LEN&gt& v)</b>
+                <li><b>inline Vector&ltT, 2> cwiseProduct(const Vector&ltT, 2>& v)</b>
+                <li><b>T& operator[](const size_t i)</b>
+                <li><b>const T& operator[](const size_t i) const</b>
+                <li><b>T& operator[](const size_t i)</b>
+                <li><b>const T& operator[](const size_t i) const</b>
+                <li><b>inline Vector&ltT, 3> cwiseProduct(const Vector&ltT, 3>& v) const</b>
+                <li><b>inline Vector&ltT, 3> cross(const Vector&ltT, 3>& v) const</b>
+                <li><b>float norm() const </b>
+                <li><b>Vector&ltT, 3>& normalize(T l = 1)</b>
+                </ul>
+	    	</ul>
+	    </td>
+	</tr>
+  </tbody>
+</table>
+#### Function Update Description：
+<b>About zbuffer:</b>
+Add the initialization of the Zbuffer and space allocation of the Z table to the TGAImage constructor:
 
+    TGAImage::TGAImage() : data(nullptr), zbuffer(nullptr), width(0), height(0), bytespp(0) {
+      }
+    TGAImage::TGAImage(int w, int h, int bpp) : data(nullptr), zbuffer(nullptr), width(w), height(h), bytespp(bpp) {
+          unsigned long nbytes = width*height*bytespp;
+          data = new unsigned char[nbytes];
+          memset(data, 0, nbytes);
+          zbuffer = new float[width * height];
+          memset(zbuffer, std::numeric_limits<float>::infinity(), sizeof zbuffer);
+      }
+    TGAImage::TGAImage(const TGAImage &img) {
+          width = img.width;
+          height = img.height;
+          bytespp = img.bytespp;
+          unsigned long nbytes = width*height*bytespp;
+          data = new unsigned char[nbytes];
+          memcpy(data, img.data, nbytes);
+          zbuffer = new float[width * height];
+          memcpy(zbuffer, img.zbuffer, sizeof zbuffer);
+      }
+    TGAImage::~TGAImage() {
+          if (data) delete [] data;
+          if (zbuffer) delete[] zbuffer;
+      }
+
+Record a z value for each pixel and render only the pixels with the lowest z value:
+
+    void TGAImage::triangle(Vector3f* vertex, TGAImage& image, TGAColor color)
+    {
+      
+      Vector2f bboxleft(std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+      Vector2f bboxright(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
+      Vector2f clamp(image.get_width() - 1, image.get_height() - 1);
+      for (int i = 0; i < 3; i++) //选取左下角与右上角的点构建包围盒
+      {
+        bboxleft.x = std::max(0.f, std::min(bboxleft.x, vertex[i].x));
+        bboxleft.y = std::max(0.f, std::min(bboxleft.y, vertex[i].y));
+
+        bboxright.x = std::min(clamp.x, std::max(bboxright.x, vertex[i].x));
+        bboxright.y = std::min(clamp.y, std::max(bboxright.y, vertex[i].y));
+      }
+      Vector3i P;
+      for (P.x = bboxleft.x; P.x <= bboxright.x; P.x++)
+      {
+        for (P.y = bboxleft.y; P.y <= bboxright.y; P.y++)
+        {
+          P.z = 0;
+          if (insideTriangle((float)P.x + 0.5, (float)P.y + 0.5, vertex))
+          {
+            Vector3f Barycentric = computeBarycentric2D((float)P.x + 0.5, (float)P.y + 0.5, vertex);
+            /*for (int i = 0; i < 3; i++) P.z += vertex[i].z * Barycentric[i];*/
+            P.z = vertex[0].z * Barycentric.x + vertex[1].z * Barycentric.y + vertex[2].z * Barycentric.z;//用三个顶点的z轴坐标插值出P点z值
+            if (zbuffer[(P.x + P.y * width)] < P.z)
+            {
+              zbuffer[(P.x + P.y * width)] = P.z;
+              image.set(P.x, P.y, color);
+            }
+          }
+            
+        }
+      }
+    }
 ## Commit 1 : Line drawing and framebuffer (included barycentric coordinate interpolation)
 ### Function Update Description：
 #### the triangle() : find barycentric coordinates of the point P with respect to the triangle ABC. And determine whether a point is in a triangle by the barycentric coordinates.

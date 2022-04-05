@@ -16,18 +16,10 @@ Model::Model(const char *filename) : verts_(), faces_() {
         char trash;
         if (!line.compare(0, 2, "v ")) {
             iss >> trash;
-            Vector3f v;
+            Vec3f v;
             for (int i=0;i<3;i++) iss >> v.raw[i];
             verts_.push_back(v);
-        }
-        else if (!line.compare(0, 2, "vt"))
-        {
-            iss >> trash >> trash;
-            Vector2f uv;
-            for (int i = 0; i < 2; i++) iss >> uv[i];
-            uvs_.push_back(uv);
-        }
-        else if (!line.compare(0, 2, "f ")) {
+        } else if (!line.compare(0, 2, "f ")) {
             std::vector<int> f;
             int itrash, idx;
             iss >> trash;
@@ -37,7 +29,6 @@ Model::Model(const char *filename) : verts_(), faces_() {
             }
             faces_.push_back(f);
         }
-        
     }
     std::cerr << "# v# " << verts_.size() << " f# "  << faces_.size() << std::endl;
 }
@@ -57,12 +48,7 @@ std::vector<int> Model::face(int idx) {
     return faces_[idx];
 }
 
-Vector3f Model::vert(int i) {
+Vec3f Model::vert(int i) {
     return verts_[i];
 }
 
-TGAColor Model::diffuse(Vector2f uv)
-{
-    Vector2i uvwh(uv[0] * diffusemap_.get_width(), uv[1] * diffusemap_.get_height());
-    return diffusemap_.get(uvwh[0], uvwh[1]);
-}
