@@ -127,7 +127,6 @@ Add the initialization of the Zbuffer and space allocation of the Z table to the
               image.set(P.x, P.y, color);
             }
           }
-            
         }
       }
     }
@@ -163,8 +162,8 @@ Especially, if INF is not used, there will be accuracy problems:<br>
 We can see a lot of unrendered black dots and lines from the image. But there was a significant improvement with INF:<br>
 <img width="651" alt="theface" src="https://user-images.githubusercontent.com/74391884/161389500-3bc44ea7-73a0-414a-8aba-8cd772b82d3d.png"><br>
 
-    bool insideTriangle(float x, float y, const Vec2i* v) //定义全局函数，并在头文件geometry中声明
-    {   //constexpr double INF = 1e-9;
+    static bool insideTriangle(float x, float y, const Vec2i* v) //定义全局函数，并在头文件geometry中声明
+    {   //constexpr double INF = 1e-4;
         float c2 = (x * (v[2].y - v[0].y) + (v[0].x - v[2].x) * y + v[2].x * v[0].y - v[0].x * v[2].y) / (v[1].x * (v[2].y - v[0].y) + (v[0].x - v[2].x) * v[1].y + v[2].x * v[0].y - v[0].x * v[2].y);
         float c3 = (x * (v[0].y - v[1].y) + (v[1].x - v[0].x) * y + v[0].x * v[1].y - v[1].x * v[0].y) / (v[2].x * (v[0].y - v[1].y) + (v[1].x - v[0].x) * v[2].y + v[0].x * v[1].y - v[1].x * v[0].y);
         float c1 = 1 - c2 - c3;
