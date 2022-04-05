@@ -61,6 +61,7 @@ This update reconstructs the mathematics of the entire code framework, abandonin
   </tbody>
 </table>
 #### Function Update Description：
+
 <b>About zbuffer:</b>
 Add the initialization of the Zbuffer and space allocation of the Z table to the TGAImage constructor:
 
