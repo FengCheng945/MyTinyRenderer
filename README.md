@@ -4,6 +4,81 @@ This software rendering is my personal project following [the wiki](https://gith
 
 ## Description
 This document is a detailed review of the significant commits to this repository from the very beginning of the project. 
+
+## Commit 3 : Rasterizer and texture
+This update abstracts the previous rendering from tgaimage and adds the texture method.
+<table>
+  <tbody>
+    <tr>
+      <th align="center">file update</th>
+      <th align="center">Description</th>
+    </tr>
+	<tr>
+      <td align="left">
+      <ul>
+                model.h/cpp<br>
+                rasterizer.h/cpp<br>
+	    	</ul>
+      </td>
+	    <td align="left">
+	    	<ul>
+	    		<li><b> Update Function:</b>
+                <li><b>model.h/cpp</b></li>
+                <ul>
+                    <li><b>Vector2i uv(int iface, int nvert)</b>: Read UV coordinates
+                    <li><b>TGAColor diffuse(Vector2i uv)</b>: Read texture color by texture coordinates
+                </ul>
+	    		<li><b>rasterizer.h/cpp</b>
+                    <ul><li><b>void line(Vec2i t0, Vec2i t1, TGAImage& image, TGAColor color)</b>: render pixels according to linear interpolation method;
+                    <li><b>void LineTriangle(Vec2i t0, Vec2i t1, Vec2i t2, TGAImage& image, TGAColor color)</b>:  to get the contour of the triangle by line()
+                    <li><b>void triangle(Vec2i* vertex, TGAImage& image, TGAColor color)</b>: 1) select the lower-left and upper-right points to build the bounding box; 2) Scan the pixels in the bounding box to call bool insideTriangle() and image.set() (framebuffer)
+                    <li><b>void triangle(Vector3f* vertex, Vector2i* tex, TGAImage& image, Model* model, float& intensity)</b>: overloading triangle to add texture color interpolation.
+                    </ul>
+	    	</ul>
+	    </td>
+	</tr>
+  </tbody>
+</table>
+
+overloading triangle:
+
+    void Rasterizer::triangle(Vector3f* vertex, Vector2i* tex, TGAImage& image, Model* model, float& intensity)
+    {
+      int width = image.get_width();
+      float* zbuffer = image.get_zbuffer();
+      Vector2f bboxleft(std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+      Vector2f bboxright(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
+      Vector2f clamp(image.get_width() - 1, image.get_height() - 1);
+      for (int i = 0; i < 3; i++) //选取左下角与右上角的点构建包围盒
+      {
+        bboxleft.x = std::max(0.f, std::min(bboxleft.x, vertex[i].x));
+        bboxleft.y = std::max(0.f, std::min(bboxleft.y, vertex[i].y));
+
+        bboxright.x = std::min(clamp.x, std::max(bboxright.x, vertex[i].x));
+        bboxright.y = std::min(clamp.y, std::max(bboxright.y, vertex[i].y));
+      }
+      Vector3i P;
+      for (P.x = bboxleft.x; P.x <= bboxright.x; P.x++)
+      {
+        for (P.y = bboxleft.y; P.y <= bboxright.y; P.y++)
+        {
+          if (insideTriangle((float)P.x + 0.5, (float)P.y + 0.5, vertex))
+          {
+            Vector3f Barycentric = computeBarycentric2D((float)P.x + 0.5, (float)P.y + 0.5, vertex);
+            P.z = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, vertex[0], vertex[1], vertex[2], 1).z;//用三个顶点的z轴坐标插值出P点z值
+            Vector2i tex_coords = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, tex[0], tex[1], tex[2], 1);
+            if (zbuffer[(P.x + P.y * width)] < P.z)
+            {
+              TGAColor tex_color = model->diffuse(tex_coords);
+              zbuffer[(P.x + P.y * width)] = P.z;
+              image.set(P.x, P.y, TGAColor(pow(intensity, 2.2) * tex_color.r, pow(intensity, 2.2) * tex_color.g, pow(intensity, 2.2) * tex_color.b, tex_color.a));
+            }
+          }
+        }
+      }
+    }
+
+
 ## Commit 2 : Code refactoring and zbuffer
 This update reconstructs the mathematics of the entire code framework, abandoning the old implementation in the tutorial.<br>
 <table>
@@ -60,7 +135,9 @@ This update reconstructs the mathematics of the entire code framework, abandonin
 	</tr>
   </tbody>
 </table>
+
 #### Function Update Description：
+
 <b>About zbuffer:</b>
 Add the initialization of the Zbuffer and space allocation of the Z table to the TGAImage constructor:
 
@@ -88,7 +165,13 @@ Add the initialization of the Zbuffer and space allocation of the Z table to the
           if (zbuffer) delete[] zbuffer;
       }
 
-Record a z value for each pixel and render only the pixels with the lowest z value:
+<b>Record a z value for each pixel and render only the pixels with the lowest z value:</b><br>
+<img width="400" alt="theface" src="https://user-images.githubusercontent.com/74391884/161718651-2a956e46-0301-4899-bfc3-1f2f0be8ac46.png"><br>
+<b>Found that the tutorial images had color differences, so gamma correction was added</b><br>
+
+	image.triangle(vertex, image, TGAColor(pow(intensity,2.2) * 255, pow(intensity, 2.2) * 255, pow(intensity, 2.2) * 255, 255));
+	
+<img width="400" alt="theface" src="https://user-images.githubusercontent.com/74391884/161719094-b49626d0-5ed9-4f9a-94f6-4a35cf841fda.png"><br>
 
     void TGAImage::triangle(Vector3f* vertex, TGAImage& image, TGAColor color)
     {
@@ -121,7 +204,6 @@ Record a z value for each pixel and render only the pixels with the lowest z val
               image.set(P.x, P.y, color);
             }
           }
-            
         }
       }
     }
@@ -157,8 +239,8 @@ Especially, if INF is not used, there will be accuracy problems:<br>
 We can see a lot of unrendered black dots and lines from the image. But there was a significant improvement with INF:<br>
 <img width="651" alt="theface" src="https://user-images.githubusercontent.com/74391884/161389500-3bc44ea7-73a0-414a-8aba-8cd772b82d3d.png"><br>
 
-    bool insideTriangle(float x, float y, const Vec2i* v) //定义全局函数，并在头文件geometry中声明
-    {   //constexpr double INF = 1e-9;
+    static bool insideTriangle(float x, float y, const Vec2i* v) //定义全局函数，并在头文件geometry中声明
+    {   //constexpr double INF = 1e-4;
         float c2 = (x * (v[2].y - v[0].y) + (v[0].x - v[2].x) * y + v[2].x * v[0].y - v[0].x * v[2].y) / (v[1].x * (v[2].y - v[0].y) + (v[0].x - v[2].x) * v[1].y + v[2].x * v[0].y - v[0].x * v[2].y);
         float c3 = (x * (v[0].y - v[1].y) + (v[1].x - v[0].x) * y + v[0].x * v[1].y - v[1].x * v[0].y) / (v[2].x * (v[0].y - v[1].y) + (v[1].x - v[0].x) * v[2].y + v[0].x * v[1].y - v[1].x * v[0].y);
         float c1 = 1 - c2 - c3;
