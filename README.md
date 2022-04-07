@@ -4,6 +4,80 @@ This software rendering is my personal project following [the wiki](https://gith
 
 ## Description
 This document is a detailed review of the significant commits to this repository from the very beginning of the project. 
+
+## Commit 3 : Rasterizer and texture
+This update abstracts the previous rendering from tgaimage and adds the texture method.
+<table>
+  <tbody>
+    <tr>
+      <th align="center">file update</th>
+      <th align="center">Description</th>
+    </tr>
+	<tr>
+      <td align="left">
+      <ul>
+                model.h/cpp<br>
+                rasterizer.h/cpp<br>
+	    	</ul>
+      </td>
+	    <td align="left">
+	    	<ul>
+	    		<li><b> Update Function:</b>
+                <li><b>model.h/cpp</b></li>
+                <ul>
+                    <li><b>Vector2i uv(int iface, int nvert)</b>: Read UV coordinates
+                    <li><b>TGAColor diffuse(Vector2i uv)</b>: Read texture color by texture coordinates
+                </ul>
+	    		<li><b>rasterizer.h/cpp</b>
+                    <ul><li><b>void line(Vec2i t0, Vec2i t1, TGAImage& image, TGAColor color)</b>: render pixels according to linear interpolation method;
+                    <li><b>void LineTriangle(Vec2i t0, Vec2i t1, Vec2i t2, TGAImage& image, TGAColor color)</b>:  to get the contour of the triangle by line()
+                    <li><b>void triangle(Vec2i* vertex, TGAImage& image, TGAColor color)</b>: 1) select the lower-left and upper-right points to build the bounding box; 2) Scan the pixels in the bounding box to call bool insideTriangle() and image.set() (framebuffer)
+                    <li><b>void triangle(Vector3f* vertex, Vector2i* tex, TGAImage& image, Model* model, float& intensity)</b>: overloading triangle to add texture color interpolation.
+                    </ul>
+	    	</ul>
+	    </td>
+	</tr>
+  </tbody>
+</table>
+
+overloading triangle:
+
+    void Rasterizer::triangle(Vector3f* vertex, Vector2i* tex, TGAImage& image, Model* model, float& intensity)
+    {
+      int width = image.get_width();
+      float* zbuffer = image.get_zbuffer();
+      Vector2f bboxleft(std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+      Vector2f bboxright(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
+      Vector2f clamp(image.get_width() - 1, image.get_height() - 1);
+      for (int i = 0; i < 3; i++) //选取左下角与右上角的点构建包围盒
+      {
+        bboxleft.x = std::max(0.f, std::min(bboxleft.x, vertex[i].x));
+        bboxleft.y = std::max(0.f, std::min(bboxleft.y, vertex[i].y));
+
+        bboxright.x = std::min(clamp.x, std::max(bboxright.x, vertex[i].x));
+        bboxright.y = std::min(clamp.y, std::max(bboxright.y, vertex[i].y));
+      }
+      Vector3i P;
+      for (P.x = bboxleft.x; P.x <= bboxright.x; P.x++)
+      {
+        for (P.y = bboxleft.y; P.y <= bboxright.y; P.y++)
+        {
+          if (insideTriangle((float)P.x + 0.5, (float)P.y + 0.5, vertex))
+          {
+            Vector3f Barycentric = computeBarycentric2D((float)P.x + 0.5, (float)P.y + 0.5, vertex);
+            P.z = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, vertex[0], vertex[1], vertex[2], 1).z;//用三个顶点的z轴坐标插值出P点z值
+            Vector2i tex_coords = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, tex[0], tex[1], tex[2], 1);
+            if (zbuffer[(P.x + P.y * width)] < P.z)
+            {
+              TGAColor tex_color = model->diffuse(tex_coords);
+              zbuffer[(P.x + P.y * width)] = P.z;
+              image.set(P.x, P.y, TGAColor(pow(intensity, 2.2) * tex_color.r, pow(intensity, 2.2) * tex_color.g, pow(intensity, 2.2) * tex_color.b, tex_color.a));
+            }
+          }
+        }
+      }
+    }
+
 ## Commit 2 : Code refactoring and zbuffer
 This update reconstructs the mathematics of the entire code framework, abandoning the old implementation in the tutorial.<br>
 <table>
