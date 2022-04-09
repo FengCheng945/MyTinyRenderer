@@ -139,7 +139,7 @@ Added a new 4-dimensional vector type and added matrix * 4-dimensional vector to
       }
       return res;
     };
-
+<br>
 ###MVP part
 
 This part we're going to do three transformations of the world vertex coordinates: MVP = M_pro * M_view * M_model * v; (don't forget viewport transformation finally)
