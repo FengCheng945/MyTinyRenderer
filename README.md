@@ -141,13 +141,16 @@ Added a new 4-dimensional vector type and added matrix * 4-dimensional vector to
     };
 
 ###MVP part
+
 This part we're going to do three transformations of the world vertex coordinates: MVP = M_pro * M_view * M_model * v; (don't forget viewport transformation finally)
 
 ####Model transformation: 
+
 In this section I implemented the method of rotation about xyz axis and rotation about any axis:
 图片
 
 ####Camera transformation:
+
 This section implements the transformation of View Matrix：
 tu
 
@@ -179,6 +182,7 @@ tu
     }
 
 ####Projection transformation:
+
 The last part is projection transformation, including orthogonal transformation and perspective transformation:
 
     Matrix4f Rasterizer::get_projection_matrix(float eye_fov, float aspect_ratio, float zNear, float zFar)
@@ -231,6 +235,7 @@ Added MVP transformation in Main:
       screen_coords[j] = rst.get_viewport(v, width, height);
 
 ####error record: about memset zbuffer
+
 memset function can only be used for initialization and take care to input the correct nbyte! 
 
     TGAImage::TGAImage(int w, int h, int bpp) : data(nullptr), zbuffer(nullptr), width(w), height(h), bytespp(bpp) {
