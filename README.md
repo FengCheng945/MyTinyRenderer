@@ -124,7 +124,7 @@ The input to matrix is a vector of the corresponding type. I get array and initi
     }
 
 Added a new 4-dimensional vector type and added matrix * 4-dimensional vector to facilitate MVP transformation
-<ul>
+
     template<typename T, size_t NROW, size_t NCOL>
     Vector4f Matrix<T, NROW, NCOL>::operator*(Vector4f& v) const
     {
@@ -139,20 +139,17 @@ Added a new 4-dimensional vector type and added matrix * 4-dimensional vector to
       }
       return res;
     };
-</ul>
-###MVP part
 
+### MVP part
 This part we're going to do three transformations of the world vertex coordinates: MVP = M_pro * M_view * M_model * v; (don't forget viewport transformation finally)
 
-####Model transformation: 
+#### Model transformation:
+In this section I implemented the method of rotation about xyz axis and rotation about any axis: <br>
+![image](https://user-images.githubusercontent.com/74391884/162553304-c5c10efa-8995-4456-9dfc-aafd6b500531.png =400)
 
-In this section I implemented the method of rotation about xyz axis and rotation about any axis:
-图片
-
-####Camera transformation:
-
-This section implements the transformation of View Matrix：
-tu
+#### Camera transformation:
+This section implements the transformation of View Matrix: <br>
+![image](https://user-images.githubusercontent.com/74391884/162553327-8cc8f0c5-6988-4747-b191-f3ba66edb288.png =400)
 
     Matrix4f Rasterizer::get_view_matrix(Vector3f eye_pos)
     {
@@ -181,9 +178,9 @@ tu
       return view;
     }
 
-####Projection transformation:
-
-The last part is projection transformation, including orthogonal transformation and perspective transformation:
+#### Projection transformation:
+The last part is projection transformation, including orthogonal transformation and perspective transformation: <br>
+![image](https://user-images.githubusercontent.com/74391884/162553338-2700460a-196c-4b87-83dd-890f643e2add.png =400)
 
     Matrix4f Rasterizer::get_projection_matrix(float eye_fov, float aspect_ratio, float zNear, float zFar)
     {
