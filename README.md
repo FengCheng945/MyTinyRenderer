@@ -145,6 +145,7 @@ This part we're going to do three transformations of the world vertex coordinate
 
 #### Model transformation:
 In this section I implemented the method of rotation about xyz axis and rotation about any axis: <br>
+
 <img width="400" alt="theface" src="https://user-images.githubusercontent.com/74391884/162553304-c5c10efa-8995-4456-9dfc-aafd6b500531.png"><br>
 #### Camera transformation:
 This section implements the transformation of View Matrix: <br>
@@ -177,7 +178,6 @@ This section implements the transformation of View Matrix: <br>
     }
 
 <img width="400" alt="theface" src="https://user-images.githubusercontent.com/74391884/162553327-8cc8f0c5-6988-4747-b191-f3ba66edb288.png"><br>
-
 #### Projection transformation:
 The last part is projection transformation, including orthogonal transformation and perspective transformation: <br>
 
@@ -220,7 +220,6 @@ The last part is projection transformation, including orthogonal transformation 
     }
 
 <img width="400" alt="theface" src="https://user-images.githubusercontent.com/74391884/162553338-2700460a-196c-4b87-83dd-890f643e2add.png"><br>
-
 Added MVP transformation in Main:
 
       Vector3f vex = model->vert(face[j]);
