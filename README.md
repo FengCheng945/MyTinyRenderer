@@ -148,7 +148,6 @@ In this section I implemented the method of rotation about xyz axis and rotation
 <img width="400" alt="theface" src="https://user-images.githubusercontent.com/74391884/162553304-c5c10efa-8995-4456-9dfc-aafd6b500531.png"><br>
 #### Camera transformation:
 This section implements the transformation of View Matrix: <br>
-<img width="400" alt="theface" src="https://user-images.githubusercontent.com/74391884/162553327-8cc8f0c5-6988-4747-b191-f3ba66edb288.png"><br>
 
     Matrix4f Rasterizer::get_view_matrix(Vector3f eye_pos)
     {
@@ -177,9 +176,10 @@ This section implements the transformation of View Matrix: <br>
       return view;
     }
 
+<img width="400" alt="theface" src="https://user-images.githubusercontent.com/74391884/162553327-8cc8f0c5-6988-4747-b191-f3ba66edb288.png"><br>
+
 #### Projection transformation:
 The last part is projection transformation, including orthogonal transformation and perspective transformation: <br>
-<img width="400" alt="theface" src="https://user-images.githubusercontent.com/74391884/162553338-2700460a-196c-4b87-83dd-890f643e2add.png"><br>
 
     Matrix4f Rasterizer::get_projection_matrix(float eye_fov, float aspect_ratio, float zNear, float zFar)
     {
@@ -218,6 +218,8 @@ The last part is projection transformation, including orthogonal transformation 
       projection = M_ortho * M_persp * projection;
       return projection;
     }
+
+<img width="400" alt="theface" src="https://user-images.githubusercontent.com/74391884/162553338-2700460a-196c-4b87-83dd-890f643e2add.png"><br>
 
 Added MVP transformation in Main:
 
