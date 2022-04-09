@@ -317,16 +317,9 @@ overloading triangle:
         }
       }
     }
-<<<<<<< HEAD
-Added texture colors and merged lighting effects：<br>
-<img width="400" alt="theface" src="https://user-images.githubusercontent.com/74391884/162105883-595fa3db-a2b7-41b7-be78-a5ed251a23d8.png"><br>
-=======
-
 Added texture colors and merged lighting effects：<br>
 <img width="400" alt="theface" src="https://user-images.githubusercontent.com/74391884/162105883-595fa3db-a2b7-41b7-be78-a5ed251a23d8.png"><br>
 <br>
->>>>>>> 80ac336e753e3698f0b1f7eed2b0adae5fba3487
-
 ## Commit 2 : Code refactoring and zbuffer
 This update reconstructs the mathematics of the entire code framework, abandoning the old implementation in the tutorial.<br>
 <table>
