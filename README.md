@@ -5,6 +5,246 @@ This software rendering is my personal project following [the wiki](https://gith
 ## Description
 This document is a detailed review of the significant commits to this repository from the very beginning of the project. 
 
+## Commit 4 : Matrix and coordinate transformations
+This update adds Matrix templates in geometry.h and implements a series of coordinate transformations in the pipeline.
+<table>
+  <tbody>
+    <tr>
+      <th align="center">file update</th>
+      <th align="center">Description</th>
+    </tr>
+	<tr>
+      <td align="left">
+      <ul>
+                geometry.h<br>
+                rasterizer.h/cpp<br>
+	    	</ul>
+      </td>
+	    <td align="left">
+	    	<ul>
+	    		<li><b> Update Function:</b>
+                <li><b>rasterizer.h/cpp:</b> added MVP transformation method. </li>
+                <ul>
+                    <li><b>Matrix4f get_view_matrix(Vector3f eye_pos);</b>
+                    <li><b>Matrix4f get_model_matrix(char n , float rotation_angle);</b>
+                    <li><b>Matrix4f get_random_model_matrix(Vector3f n, float rotation_angle);</b>
+                    <li><b>Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio, float zNear, float zFar);</b>
+                    <li><b>Vector3f get_viewport(Vector4f& v, const int& width, const int& height);</b>
+                </ul>
+	    		<li><b>geometry.h:</b> adds Matrix templates.</li>
+                    <ul>
+                    <b><li>template&lttypename T> struct Vector&ltT, 4>
+                    <li>Vector3f Matrix&ltT, NROW, NCOL>::operator*(Vector3f& v) const
+                    <li>Matrix();
+                    <li>Matrix(T);
+                    <li>Matrix(const Matrix&ltT, NROW, NCOL>& );
+                    <li>virtual ~Matrix();
+                    <li>T& operator()(const size_t i, const size_t j) { assert(i &lt NROW && j < NCOL); return m[i][j]; }
+                    <li>const T& operator()(const size_t i, const size_t j) const { assert(i < NROW && j < NCOL); return m[i][j]; }
+                    <li>void clear();
+                    <li>void identity();
+                    <li>void transpose();
+                    <li>void show();
+                    <li>Matrix&ltT, NROW, NCOL>& operator=(const Matrix&ltT, NROW, NCOL>&);
+                    <li>Matrix&ltT, NROW, NCOL>& operator+=(const Matrix&ltT, NROW, NCOL>&);
+                    <li>Matrix&ltT, NROW, NCOL>& operator-=(const Matrix&ltT, NROW, NCOL>&);
+                    <li>Matrix&ltT, NROW, NCOL>& operator*=(const Matrix&ltT, NROW, NCOL>&);
+                    <li>Matrix&ltT, NROW, NCOL>& operator*=(T);
+                    <li>Matrix&ltT, NROW, NCOL> operator*(const Matrix&ltT, NROW, NCOL>&) const;
+                    <li>Matrix&ltT, NROW, NCOL> operator*(T) const;
+                    <li>template &lttypename > friend void operator<<(Matrix&ltT, NROW, NCOL>&, std::vector&ltT>);
+                    <li>T ** m = nullptr;</b>
+                    </ul>
+	    	</ul>
+	    </td>
+	</tr>
+  </tbody>
+</table>
+
+### Function Update Description：
+This time I overload the operators in a different way (Previously I overloaded vector's operator as global functions. But this time I overloaded matrix as member functions) . The function realized in the template is the basic operation of square matrix, including transpose, Matrix operation, Matrix creation with operator<<. In addition, I manipulate the matrix by a two-dimensional pointer, that opens up space on the heap. 
+
+    template<typename T, size_t NROW, size_t NCOL> struct Matrix 
+    {
+      Matrix();
+      Matrix(T);
+      Matrix(const Matrix<T, NROW, NCOL>& );
+      virtual ~Matrix();
+      T& operator()(const size_t i, const size_t j) { assert(i < NROW && j<NCOL); return m[i][j]; }
+      const T& operator()(const size_t i, const size_t j) const { assert(i < NROW && j < NCOL); return m[i][j]; }
+      void clear();
+      void identity();
+      void transpose();
+      void show();
+      Matrix<T, NROW, NCOL>& operator=(const Matrix<T, NROW, NCOL>&);
+      Matrix<T, NROW, NCOL>& operator+=(const Matrix<T, NROW, NCOL>&);
+      Matrix<T, NROW, NCOL>& operator-=(const Matrix<T, NROW, NCOL>&);
+      Matrix<T, NROW, NCOL>& operator*=(const Matrix<T, NROW, NCOL>&);
+      Matrix<T, NROW, NCOL>& operator*=(T);
+      Matrix<T, NROW, NCOL> operator*(const Matrix<T, NROW, NCOL>&) const; //*的操作要返回拷贝对象，不是在原对象上修改所以没有&
+      Matrix<T, NROW, NCOL> operator*(T) const;
+      template <typename > friend void operator<<(Matrix<T, NROW, NCOL>&, std::vector<T>);
+      T ** m = nullptr;
+    };
+
+The input to matrix is a vector of the corresponding type. I get array and initialize matrix in the form of pass-by-value in the original function:
+
+    template<typename T, size_t NROW, size_t NCOL>
+    void operator<<(Matrix<T, NROW, NCOL>& res, std::vector<T> v)
+    {
+      assert(v.size() == NROW * NCOL);
+      for (int i = 0; i < NROW; i++)
+      {
+        for (int j = 0; j < NCOL; j++)
+        {
+          res.m[i][j] = v[i * NCOL + j];
+        }
+      }
+    };
+    //input:
+    int main(int argc, char** argv) {
+        Matrix3f m;
+        m << std::vector<float>{
+            1,2,3,
+            1,2,3,
+            1,2,3
+        };
+        Matrix3f n;
+        n << std::vector<float>{
+            1, 2, 3,
+            1, 2, 3,
+            1, 2, 3
+        };
+        Matrix3f mn = m * n;
+        mn.show();
+        /*6 12 18
+          6 12 18
+          6 12 18*/
+        return 0;
+    }
+
+Added a new 4-dimensional vector type and added matrix * 4-dimensional vector to facilitate MVP transformation
+
+    template<typename T, size_t NROW, size_t NCOL>
+    Vector4f Matrix<T, NROW, NCOL>::operator*(Vector4f& v) const
+    {
+      assert(NROW == 4 && NCOL == 4);
+      Vector4f res(0, 0, 0, 0);
+      for (int i = 0; i < NROW; i++)
+      {
+        for (int j = 0; j < NCOL; j++)
+        {
+          res[i] += m[i][j] * v[j];
+        }
+      }
+      return res;
+    };
+
+###MVP part
+This part we're going to do three transformations of the world vertex coordinates: MVP = M_pro * M_view * M_model * v; (don't forget viewport transformation finally)
+
+####Model transformation: 
+In this section I implemented the method of rotation about xyz axis and rotation about any axis:
+图片
+
+####Camera transformation:
+This section implements the transformation of View Matrix：
+tu
+
+    Matrix4f Rasterizer::get_view_matrix(Vector3f eye_pos)
+    {
+      //camera transformations: M_view = R_view * T_view
+      Vector3f up(0, 1, 0);
+      Matrix4f view; view.identity();
+      Vector3f z = eye_pos; z.normalize();
+      Vector3f x = up.cross(z).normalize();
+      Vector3f y = z.cross(x).normalize();
+      view << std::vector<float>{
+          x[0], x[1], x[2], 0,
+          y[0], y[1], y[2], 0,
+          z[0], z[1], z[2], 0,
+          0, 0, 0, 1
+      };
+      
+      Matrix4f translate;
+      translate <<
+        std::vector<float>{
+          1, 0, 0, -eye_pos[0],
+          0, 1, 0, -eye_pos[1],
+          0, 0, 1, -eye_pos[2],
+          0, 0, 0, 1
+      };
+      view *= translate;
+      return view;
+    }
+
+####Projection transformation:
+The last part is projection transformation, including orthogonal transformation and perspective transformation:
+
+    Matrix4f Rasterizer::get_projection_matrix(float eye_fov, float aspect_ratio, float zNear, float zFar)
+    {
+      Matrix4f projection; projection.identity();
+      Matrix4f M_trans;
+      Matrix4f M_persp;
+      Matrix4f M_ortho;
+      M_persp << std::vector<float>{
+        zNear, 0, 0, 0,
+          0, zNear, 0, 0,
+          0, 0, zNear + zFar, -zFar * zNear,
+          0, 0, 1, 0
+      };
+
+      float alpha = 0.5 * eye_fov * MY_PI / 180.0f;
+      float yTop = -zNear * std::tan(alpha); //
+      float yBottom = -yTop;
+      float xRight = yTop * aspect_ratio;
+      float xLeft = -xRight;
+
+      M_trans << std::vector < float>{
+        1, 0, 0, -(xLeft + xRight) / 2,
+          0, 1, 0, -(yTop + yBottom) / 2,
+          0, 0, 1, -(zNear + zFar) / 2,
+          0, 0, 0, 1
+      };
+
+      M_ortho << std::vector < float>{
+        2 / (xRight - xLeft), 0, 0, 0,
+          0, 2 / (yTop - yBottom), 0, 0,
+          0, 0, 2 / (zNear - zFar), 0,
+          0, 0, 0, 1
+      };
+
+      M_ortho = M_ortho * M_trans;
+      projection = M_ortho * M_persp * projection;
+      return projection;
+    }
+
+Added MVP transformation in Main:
+
+      Vector3f vex = model->vert(face[j]);
+      Matrix4f M_model = rst.get_model_matrix('Z', 45);
+      Matrix4f M_view = rst.get_view_matrix(eye_pos);
+      Matrix4f M_pro = rst.get_projection_matrix(45, 1, 0.1, 50);
+      Vector4f v(vex.x, vex.y, vex.z, 1.f);
+      v =  M_pro * M_view * M_model * v;
+      v = v/v.w;
+      screen_coords[j] = rst.get_viewport(v, width, height);
+
+####error record: about memset zbuffer
+memset function can only be used for initialization and take care to input the correct nbyte! 
+
+    TGAImage::TGAImage(int w, int h, int bpp) : data(nullptr), zbuffer(nullptr), width(w), height(h), bytespp(bpp) {
+      unsigned long nbytes = width*height*bytespp;
+      data = new unsigned char[nbytes];
+      memset(data, 0, nbytes);
+      
+      zbuffer = new float[width * height];
+      //error: memset(zbuffer, std::numeric_limits<float>::infinity(), sizeof(zbuffer));
+      memset(zbuffer, 0, width * height * sizeof(float));
+      for (int i = width * height; i--;) zbuffer[i] = std::numeric_limits<float>::infinity();
+    }
+
+But! Space discontinuities occur when two dimensional arrays apply for heap memory (memset can only be used for initialization of space continuities)
 ## Commit 3 : Rasterizer and texture
 This update abstracts the previous rendering from tgaimage and adds the texture method.
 <table>
@@ -77,14 +317,9 @@ overloading triangle:
         }
       }
     }
-<<<<<<< HEAD
-
-
-=======
 Added texture colors and merged lighting effects：<br>
 <img width="400" alt="theface" src="https://user-images.githubusercontent.com/74391884/162105883-595fa3db-a2b7-41b7-be78-a5ed251a23d8.png"><br>
-<br>
->>>>>>> 03dd8fc15c5b4785a340f75dbb263473707c1f64
+
 ## Commit 2 : Code refactoring and zbuffer
 This update reconstructs the mathematics of the entire code framework, abandoning the old implementation in the tutorial.<br>
 <table>
@@ -147,29 +382,46 @@ This update reconstructs the mathematics of the entire code framework, abandonin
 <b>About zbuffer:</b>
 Add the initialization of the Zbuffer and space allocation of the Z table to the TGAImage constructor:
 
-    TGAImage::TGAImage() : data(nullptr), zbuffer(nullptr), width(0), height(0), bytespp(0) {
-      }
     TGAImage::TGAImage(int w, int h, int bpp) : data(nullptr), zbuffer(nullptr), width(w), height(h), bytespp(bpp) {
-          unsigned long nbytes = width*height*bytespp;
-          data = new unsigned char[nbytes];
-          memset(data, 0, nbytes);
-          zbuffer = new float[width * height];
-          memset(zbuffer, std::numeric_limits<float>::infinity(), sizeof zbuffer);
-      }
+      unsigned long nbytes = width*height*bytespp;
+      data = new unsigned char[nbytes];
+      memset(data, 0, nbytes);
+      
+      zbuffer = new float[width * height];
+      memset(zbuffer, 0, width * height * sizeof(float));
+      for (int i = width * height; i--;) zbuffer[i] = std::numeric_limits<float>::infinity();
+    }
+
     TGAImage::TGAImage(const TGAImage &img) {
-          width = img.width;
-          height = img.height;
-          bytespp = img.bytespp;
-          unsigned long nbytes = width*height*bytespp;
-          data = new unsigned char[nbytes];
-          memcpy(data, img.data, nbytes);
-          zbuffer = new float[width * height];
-          memcpy(zbuffer, img.zbuffer, sizeof zbuffer);
-      }
+      width = img.width;
+      height = img.height;
+      bytespp = img.bytespp;
+      unsigned long nbytes = width*height*bytespp;
+      data = new unsigned char[nbytes];
+      memcpy(data, img.data, nbytes);
+      zbuffer = new float[width * height];
+      memcpy(zbuffer, img.zbuffer, width * height * sizeof(float));
+    }
+
     TGAImage::~TGAImage() {
-          if (data) delete [] data;
-          if (zbuffer) delete[] zbuffer;
+      if (data) delete [] data;
+      if (zbuffer) delete[] zbuffer;
+    }
+
+    TGAImage & TGAImage::operator =(const TGAImage &img) {
+      if (this != &img) {
+        if (data) delete [] data;
+        width  = img.width;
+        height = img.height;
+        bytespp = img.bytespp;
+        unsigned long nbytes = width*height*bytespp;
+        data = new unsigned char[nbytes];
+        memcpy(data, img.data, nbytes);
+        zbuffer = new float[width * height];
+        memcpy(zbuffer, img.zbuffer, width * height * sizeof(float));
       }
+      return *this;
+    }
 
 <b>Record a z value for each pixel and render only the pixels with the lowest z value:</b><br>
 <img width="400" alt="theface" src="https://user-images.githubusercontent.com/74391884/161718651-2a956e46-0301-4899-bfc3-1f2f0be8ac46.png"><br>
