@@ -232,7 +232,7 @@ Added MVP transformation in Main:
       v = v/v.w;
       screen_coords[j] = rst.get_viewport(v, width, height);
 
-####error record: about memset zbuffer
+#### error record: about memset zbuffer
 
 memset function can only be used for initialization and take care to input the correct nbyte! 
 
