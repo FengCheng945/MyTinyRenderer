@@ -5,6 +5,34 @@ This software rendering is my personal project following [the wiki](https://gith
 ## Description
 This document is a detailed review of the significant commits to this repository from the very beginning of the project. 
 
+##Commit 4* : A correction of some minor errors
+I encountered some errors when testing the model with different camera angles: <br>
+![image](https://user-images.githubusercontent.com/74391884/162769239-feac4df0-2a99-4b7d-9334-e81ef6d50527.png)<br>
+
+This is a very interesting phenomenon, after discussing with friends and checking one by one. We found that the problem was the use of float type when iterating over fragments in a bounding box. To solve the accuracy problem, I decided to change the loop traversal to an integer type, and to use float type for all design to calculation.<br>
+![image](https://user-images.githubusercontent.com/74391884/162769214-628a5a68-c102-4c3a-a79b-804253e67807.png)<br>
+
+    for (P.x = static_cast<int>(bboxleft.x); P.x <= static_cast<int>(bboxright.x); P.x++)
+      {
+        for (P.y = static_cast<int>(bboxleft.y); P.y <= static_cast<int>(bboxright.y); P.y++)
+        {
+          if (insideTriangle_byCross(static_cast<float>(P.x) + 0.5, static_cast<float>(P.y) + 0.5, vertex))
+          {
+            
+            Vector3f Barycentric = computeBarycentric2D(static_cast<float>(P.x) + 0.5, static_cast<float>(P.y) + 0.5, vertex);
+            float z = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, vertex[0], vertex[1], vertex[2], 1).z;//用三个顶点的z轴坐标插值出P点z值
+            Vector2f tex_coords = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, tex[0], tex[1], tex[2], 1);
+            int idx = P.x + P.y * width;
+            if (zbuffer[idx] > z)
+            {
+              TGAColor tex_color = model->diffuse(tex_coords);
+              zbuffer[idx] = z;
+              image.set(P.x, P.y, TGAColor(pow(intensity, 2.2) * tex_color.r, pow(intensity, 2.2) * tex_color.g, pow(intensity, 2.2) * tex_color.b, tex_color.a));
+            }
+          }
+        }
+      }
+
 ## Commit 4 : Matrix and coordinate transformations
 This update adds Matrix templates in geometry.h and implements a series of coordinate transformations in the pipeline.
 <table>
