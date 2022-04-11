@@ -7,10 +7,10 @@ This document is a detailed review of the significant commits to this repository
 
 ##Commit 4* : A correction of some minor errors
 I encountered some errors when testing the model with different camera angles: <br>
-![image](https://user-images.githubusercontent.com/74391884/162769239-feac4df0-2a99-4b7d-9334-e81ef6d50527.png)<br>
+<img width="600" alt="theface" src="https://user-images.githubusercontent.com/74391884/162769239-feac4df0-2a99-4b7d-9334-e81ef6d50527.png"><br>
 
 This is a very interesting phenomenon, after discussing with friends and checking one by one. We found that the problem was the use of float type when iterating over fragments in a bounding box. To solve the accuracy problem, I decided to change the loop traversal to an integer type, and to use float type for all design to calculation.<br>
-![image](https://user-images.githubusercontent.com/74391884/162769214-628a5a68-c102-4c3a-a79b-804253e67807.png)<br>
+<img width="600" alt="theface" src="https://user-images.githubusercontent.com/74391884/162769214-628a5a68-c102-4c3a-a79b-804253e67807.png"><br>
 
     for (P.x = static_cast<int>(bboxleft.x); P.x <= static_cast<int>(bboxright.x); P.x++)
       {
