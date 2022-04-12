@@ -314,41 +314,44 @@ This update abstracts the previous rendering from tgaimage and adds the texture 
 
 overloading triangle:
 
-    void Rasterizer::triangle(Vector3f* vertex, Vector2i* tex, TGAImage& image, Model* model, float& intensity)
-    {
-      int width = image.get_width();
-      float* zbuffer = image.get_zbuffer();
-      Vector2f bboxleft(std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-      Vector2f bboxright(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
-      Vector2f clamp(image.get_width() - 1, image.get_height() - 1);
-      for (int i = 0; i < 3; i++) //选取左下角与右上角的点构建包围盒
-      {
-        bboxleft.x = std::max(0.f, std::min(bboxleft.x, vertex[i].x));
-        bboxleft.y = std::max(0.f, std::min(bboxleft.y, vertex[i].y));
+	void Rasterizer::triangle(Vector3f* vertex, Vector2f* tex, TGAImage& image, Model* model, float& intensity)
+	{
+		int width = image.get_width();
+		float* zbuffer = image.get_zbuffer();
+		Vector2f bboxleft(std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+		Vector2f bboxright(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
+		Vector2f clamp(image.get_width() - 1, image.get_height() - 1);
+		for (int i = 0; i < 3; i++) //选取左下角与右上角的点构建包围盒
+		{
+			bboxleft.x = std::max(0.f, std::min(bboxleft.x, vertex[i].x));
+			bboxleft.y = std::max(0.f, std::min(bboxleft.y, vertex[i].y));
 
-        bboxright.x = std::min(clamp.x, std::max(bboxright.x, vertex[i].x));
-        bboxright.y = std::min(clamp.y, std::max(bboxright.y, vertex[i].y));
-      }
-      Vector3i P;
-      for (P.x = bboxleft.x; P.x <= bboxright.x; P.x++)
-      {
-        for (P.y = bboxleft.y; P.y <= bboxright.y; P.y++)
-        {
-          if (insideTriangle((float)P.x + 0.5, (float)P.y + 0.5, vertex))
-          {
-            Vector3f Barycentric = computeBarycentric2D((float)P.x + 0.5, (float)P.y + 0.5, vertex);
-            P.z = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, vertex[0], vertex[1], vertex[2], 1).z;//用三个顶点的z轴坐标插值出P点z值
-            Vector2i tex_coords = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, tex[0], tex[1], tex[2], 1);
-            if (zbuffer[(P.x + P.y * width)] < P.z)
-            {
-              TGAColor tex_color = model->diffuse(tex_coords);
-              zbuffer[(P.x + P.y * width)] = P.z;
-              image.set(P.x, P.y, TGAColor(pow(intensity, 2.2) * tex_color.r, pow(intensity, 2.2) * tex_color.g, pow(intensity, 2.2) * tex_color.b, tex_color.a));
-            }
-          }
-        }
-      }
-    }
+			bboxright.x = std::min(clamp.x, std::max(bboxright.x, vertex[i].x));
+			bboxright.y = std::min(clamp.y, std::max(bboxright.y, vertex[i].y));
+		}
+		Vector3i P;
+
+		for (P.x = static_cast<int>(bboxleft.x); P.x <= static_cast<int>(bboxright.x); P.x++)
+		{
+			for (P.y = static_cast<int>(bboxleft.y); P.y <= static_cast<int>(bboxright.y); P.y++)
+			{
+				if (insideTriangle_byCross(static_cast<float>(P.x) + 0.5, static_cast<float>(P.y) + 0.5, vertex))
+				{
+
+					Vector3f Barycentric = computeBarycentric2D(static_cast<float>(P.x) + 0.5, static_cast<float>(P.y) + 0.5, vertex);
+					float z = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, vertex[0], vertex[1], vertex[2], 1).z;//用三个顶点的z轴坐标插值出P点z值
+					Vector2f tex_coords = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, tex[0], tex[1], tex[2], 1);
+					int idx = P.x + P.y * width;
+					if (zbuffer[idx] > z)
+					{
+						TGAColor tex_color = model->diffuse(tex_coords);
+						zbuffer[idx] = z;
+						image.set(P.x, P.y, TGAColor(pow(intensity, 2.2) * tex_color.r, pow(intensity, 2.2) * tex_color.g, pow(intensity, 2.2) * tex_color.b, tex_color.a));
+					}
+				}
+			}
+		}
+	}
 Added texture colors and merged lighting effects：<br>
 <img width="400" alt="theface" src="https://user-images.githubusercontent.com/74391884/162105883-595fa3db-a2b7-41b7-be78-a5ed251a23d8.png"><br>
 <br>
