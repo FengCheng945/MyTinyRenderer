@@ -5,7 +5,7 @@ This software rendering is my personal project following [the wiki](https://gith
 ## Description
 This document is a detailed review of the significant commits to this repository from the very beginning of the project. 
 
-## Commit 4* : A correction of some minor errors
+## Commit 4* : Corrections of some minor errors
 I encountered some errors when testing the model with different camera angles: <br>
 
 <img width="600" alt="theface" src="https://user-images.githubusercontent.com/74391884/162769239-feac4df0-2a99-4b7d-9334-e81ef6d50527.png"><br>
