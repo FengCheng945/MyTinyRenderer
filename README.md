@@ -312,7 +312,7 @@ This update abstracts the previous rendering from tgaimage and adds the texture 
   </tbody>
 </table>
 
-overloading triangle:
+overloading triangle(Fix accuracy error in Commit 4*):
 
 	void Rasterizer::triangle(Vector3f* vertex, Vector2f* tex, TGAImage& image, Model* model, float& intensity)
 	{
