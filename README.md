@@ -5,7 +5,7 @@ This software rendering is my personal project following [the wiki](https://gith
 ## Description
 This document is a detailed review of the significant commits to this repository from the very beginning of the project. 
 ## Commit 5 : Code Refactoring and Gouraud Shading
-For this commit I updated the Gouraud Shaing method and Normal Mapping:<br>
+For this commit I updated the Gouraud Shaing method :<br>
 <table>
   <tbody>
     <tr>
