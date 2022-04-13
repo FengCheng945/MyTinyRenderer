@@ -4,6 +4,72 @@ This software rendering is my personal project following [the wiki](https://gith
 
 ## Description
 This document is a detailed review of the significant commits to this repository from the very beginning of the project. 
+## Commit 5 : Code Refactoring and Gouraud Shading
+For this commit I updated the Gouraud Shaing method and Normal Mapping:<br>
+<table>
+  <tbody>
+    <tr>
+      <th align="center">file update</th>
+      <th align="center">Description</th>
+    </tr>
+	<tr>
+      <td align="left">
+      <ul>
+                Vex.h<br>
+                shader.h/cpp<br>
+	    	</ul>
+      </td>
+	    <td align="left">
+	    	<ul>
+	    		<li><b> Update Function:</b>
+                <li><b>Vex.h</b>: to store all information about a vertex</li>
+                <ul>
+                    <li><b>struct Vex:</b>
+                    <li>Vector3f screen_coords[3];
+                    <li>Vector3f world_coords[3];
+                    <li>Vector2f texture_coords[3];
+                    <li>Vector3f normal_coords[3];
+                    <li>float intensity[3];
+                </ul>
+	    		<li><b>shader.h/cpp</b>: Build various shader methods
+                    <ul>
+                    <li><b>class GouraudShader :public Shader{}: </b>The MVP transformation from the previous rasterizer is abstracted into the vertex shader, which is responsible for various operations of vertex shader.
+                    <li><b>virtual Vector4f vertex(int i, int j, Vex& vex): Responsible for the major operations of GouraudShader.
+                    <li>Matrix4f get_view_matrix(Vector3f eye_pos);
+                    <li>Matrix4f get_model_matrix(char n, float rotation_angle);
+                    <li>Matrix4f get_random_model_matrix(Vector3f n, float rotation_angle);
+                    <li>Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio, float zNear, float zFar);
+                    <li>Vector3f get_viewport(Vector4f& v, const int& width, const int& height);</b>
+                    </ul>
+	    	</ul>
+	    </td>
+	</tr>
+  </tbody>
+</table>
+
+### Gouraud Shading
+The main operation of Gouraud Shading is to calculate intensity of vertexes according to normals of vertexes, and then interpolate to color the inner points. 
+
+    vex.intensity[j] = std::max(0.f, vex.normal_coords[j] * light_dir);
+    float intensity = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, vex.intensity[0], vex.intensity[1], vex.intensity[2], 1); 
+    
+<img width="600" alt="theface" src="https://user-images.githubusercontent.com/74391884/163135581-60b94268-f0f5-406f-9669-44e494c644d1.png"><br>
+GouraudShader:
+
+    Vector4f GouraudShader::vertex(int i, int j, Vex& vex)
+    {
+      vex.world_coords[j] = model->vert(i, j);
+      vex.texture_coords[j] = model->uv(i, j);
+      vex.normal_coords[j] = model->normal(i,j);
+
+      Matrix4f M_model = get_model_matrix('Z', 45);
+      Matrix4f M_view = get_view_matrix(eye_pos);
+      Matrix4f M_pro = get_projection_matrix(45, 1, 0.1, 50);
+      Vector4f v(vex.world_coords[j].x, vex.world_coords[j].y, vex.world_coords[j].z, 1.f);
+      v = M_pro * M_view * M_model * v;
+      v = v / v.w;
+      return v;
+    }
 
 ## Commit 4* : Corrections of some minor errors
 I encountered some errors when testing the model with different camera angles: <br>
