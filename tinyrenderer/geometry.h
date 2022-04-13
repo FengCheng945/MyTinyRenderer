@@ -422,6 +422,7 @@ Vector4f Matrix<T, NROW, NCOL>::operator*(Vector4f& v) const
 	}
 	return res;
 };
+
 template<typename T, size_t NROW, size_t NCOL>
 Matrix<T, NROW, NCOL> Matrix<T, NROW, NCOL>::operator+(const Matrix<T, NROW, NCOL>& mcpy) const
 {

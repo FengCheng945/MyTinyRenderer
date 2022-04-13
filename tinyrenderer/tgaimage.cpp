@@ -6,7 +6,6 @@
 #include <math.h>
 #include "tgaimage.h"
 
-constexpr float INF = 1e-4;
 
 TGAImage::TGAImage() : data(nullptr), zbuffer(nullptr), width(0), height(0), bytespp(0) {
 }
@@ -109,46 +108,58 @@ bool TGAImage::read_tga_file(const char *filename) {
 	return true;
 }
 
-bool TGAImage::load_rle_data(std::ifstream &in) {
-	unsigned long pixelcount = width*height;
+bool TGAImage::load_rle_data(std::ifstream& in)
+{
+	unsigned long pixelcount = width * height;
 	unsigned long currentpixel = 0;
-	unsigned long currentbyte  = 0;
+	unsigned long currentbyte = 0;
 	TGAColor colorbuffer;
-	do {
+	do
+	{
 		unsigned char chunkheader = 0;
 		chunkheader = in.get();
-		if (!in.good()) {
+		if (!in.good())
+		{
 			std::cerr << "an error occured while reading the data\n";
 			return false;
 		}
-		if (chunkheader<128) {
+		if (chunkheader < 128)
+		{
 			chunkheader++;
-			for (int i=0; i<chunkheader; i++) {
-				in.read((char *)colorbuffer.raw, bytespp);
-				if (!in.good()) {
+			for (int i = 0; i < chunkheader; i++)
+			{
+				in.read((char*)colorbuffer.bgra, bytespp);
+				if (!in.good())
+				{
 					std::cerr << "an error occured while reading the header\n";
 					return false;
 				}
-				for (int t=0; t<bytespp; t++)
-					data[currentbyte++] = colorbuffer.raw[t];
+				for (int t = 0; t < bytespp; t++)
+					data[currentbyte++] = colorbuffer.bgra[t];
 				currentpixel++;
-				if (currentpixel>pixelcount) {
+				if (currentpixel > pixelcount)
+				{
 					std::cerr << "Too many pixels read\n";
 					return false;
 				}
 			}
-		} else {
+		}
+		else
+		{
 			chunkheader -= 127;
-			in.read((char *)colorbuffer.raw, bytespp);
-			if (!in.good()) {
+			in.read((char*)colorbuffer.bgra, bytespp);
+			if (!in.good())
+			{
 				std::cerr << "an error occured while reading the header\n";
 				return false;
 			}
-			for (int i=0; i<chunkheader; i++) {
-				for (int t=0; t<bytespp; t++)
-					data[currentbyte++] = colorbuffer.raw[t];
+			for (int i = 0; i < chunkheader; i++)
+			{
+				for (int t = 0; t < bytespp; t++)
+					data[currentbyte++] = colorbuffer.bgra[t];
 				currentpixel++;
-				if (currentpixel>pixelcount) {
+				if (currentpixel > pixelcount)
+				{
 					std::cerr << "Too many pixels read\n";
 					return false;
 				}
@@ -268,11 +279,23 @@ TGAColor TGAImage::get(int x, int y) {
 	return TGAColor(data+(x+y*width)*bytespp, bytespp);
 }
 
-bool TGAImage::set(int x, int y, TGAColor c) {
-	if (!data || x<0 || y<0 || x>=width || y>=height) {
+bool TGAImage::set(int x, int y, TGAColor& c)
+{
+	if (!data || x < 0 || y < 0 || x >= width || y >= height)
+	{
 		return false;
 	}
-	memcpy(data+(x+y*width)*bytespp, c.raw, bytespp);
+	memcpy(data + (x + y * width) * bytespp, c.bgra, bytespp);
+	return true;
+}
+
+bool TGAImage::set(int x, int y, const TGAColor& c)
+{
+	if (!data || x < 0 || y < 0 || x >= width || y >= height)
+	{
+		return false;
+	}
+	memcpy(data + (x + y * width) * bytespp, c.bgra, bytespp);
 	return true;
 }
 

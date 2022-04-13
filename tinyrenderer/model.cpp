@@ -50,6 +50,8 @@ Model::Model(const char *filename) : verts_(), faces_() {
     }
     std::cerr << "# v# " << verts_.size() << " f# " << faces_.size() << " vt# " << uvs_.size() << " vn# " << norms_.size() << std::endl;
     load_texture(filename, "_diffuse.tga", diffusemap_);
+    load_texture(filename, "_nm.tga", normalmap_);
+    load_texture(filename, "_spec.tga", specularmap_);
 }
 
 Model::~Model() {
@@ -86,15 +88,41 @@ Vector3f Model::vert(int i) {
     return verts_[i];
 }
 
-TGAColor Model::diffuse(Vector2i uv)
+Vector3f Model::vert(int iface, int nthvert)
 {
-    /*Vector2i uvwh(uv[0] * diffusemap_.get_width(), uv[1] * diffusemap_.get_height());
-    return diffusemap_.get(uvwh[0], uvwh[1]);*/
-    return diffusemap_.get(uv.x, uv.y);
+    return verts_[faces_[iface][nthvert][0]];
 }
 
-Vector2i Model::uv(int iface, int nvert)
+Vector2f Model::uv(int iface, int nvert)
 {
     int idx = faces_[iface][nvert][1];
-    return Vector2i(uvs_[idx].x * diffusemap_.get_width(), uvs_[idx].y * diffusemap_.get_height());
+    return uvs_[idx];
+}
+
+TGAColor Model::diffuse(Vector2f uv)
+{
+    Vector2i uvwh(uv[0] * diffusemap_.get_width(), uv[1] * diffusemap_.get_height());
+    return diffusemap_.get(uvwh[0], uvwh[1]);
+}
+
+Vector3f Model::normal(int iface, int nthvert)
+{
+    int idx = faces_[iface][nthvert][2];
+    return norms_[idx].normalize();
+}//每个三角形面原来的法线
+
+Vector3f Model::normal(Vector2f uvf)
+{
+    Vector2i uv(uvf[0] * normalmap_.get_width(), uvf[1] * normalmap_.get_height());
+    TGAColor c = normalmap_.get(uv[0], uv[1]);
+    Vector3f res;
+    for (int i = 0; i < 3; i++)
+        res[2 - i] = (float)c[i] / 255.f * 2.f - 1.f; //解码过程
+    return res;
+}//切线空间的法线贴图
+
+float Model::specular(Vector2f uvf)
+{
+    Vector2i uv(uvf[0] * specularmap_.get_width(), uvf[1] * specularmap_.get_height());
+    return specularmap_.get(uv[0], uv[1])[0] / 1.f;
 }

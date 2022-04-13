@@ -1,19 +1,19 @@
 #ifndef __RASTERIZER_H__
 #define __RASTERIZER_H__
-
 #include "model.h"
+#include "Vex.h"
+//光栅化类，用于管理光栅化方法
 class Rasterizer
 {
 public:
+
+	Rasterizer() = default;
+	~Rasterizer() = default;
+
 	void line(Vector2i t0, Vector2i t1, TGAImage& image, TGAColor color);
 	void LineTriangle(Vector2i t0, Vector2i t1, Vector2i t2, TGAImage& image, TGAColor color);
-	void triangle(Vector3f* vertex, TGAImage& image, TGAColor color);
-	void triangle(Vector3f* vertex, Vector2i* tex, TGAImage& image, Model* model, float& intensity);
-	Matrix4f get_view_matrix(Vector3f eye_pos);
-	Matrix4f get_model_matrix(char n , float rotation_angle);
-	Matrix4f get_random_model_matrix(Vector3f n, float rotation_angle);
-	Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio, float zNear, float zFar);
-	Vector3f get_viewport(Vector4f& v, const int& width, const int& height);
+	void flat_triangle(Vector3f* vertex, Vector2f* tex, TGAImage& image, Model* model, float& intensity);
+	void triangle(Vex& vex, TGAImage& image, Model* model);
 };
 
 

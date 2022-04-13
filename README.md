@@ -4,6 +4,102 @@ This software rendering is my personal project following [the wiki](https://gith
 
 ## Description
 This document is a detailed review of the significant commits to this repository from the very beginning of the project. 
+## Commit 5 : Code Refactoring and Gouraud Shading
+For this commit I updated the Gouraud Shaing method and Normal Mapping:<br>
+<table>
+  <tbody>
+    <tr>
+      <th align="center">file update</th>
+      <th align="center">Description</th>
+    </tr>
+	<tr>
+      <td align="left">
+      <ul>
+                Vex.h<br>
+                shader.h/cpp<br>
+	    	</ul>
+      </td>
+	    <td align="left">
+	    	<ul>
+	    		<li><b> Update Function:</b>
+                <li><b>Vex.h</b>: to store all information about a vertex</li>
+                <ul>
+                    <li><b>struct Vex:</b>
+                    <li>Vector3f screen_coords[3];
+                    <li>Vector3f world_coords[3];
+                    <li>Vector2f texture_coords[3];
+                    <li>Vector3f normal_coords[3];
+                    <li>float intensity[3];
+                </ul>
+	    		<li><b>shader.h/cpp</b>: Build various shader methods
+                    <ul>
+                    <li><b>class GouraudShader :public Shader{}: </b>The MVP transformation from the previous rasterizer is abstracted into the vertex shader, which is responsible for various operations of vertex shader.
+                    <li><b>virtual Vector4f vertex(int i, int j, Vex& vex): Responsible for the major operations of GouraudShader.
+                    <li>Matrix4f get_view_matrix(Vector3f eye_pos);
+                    <li>Matrix4f get_model_matrix(char n, float rotation_angle);
+                    <li>Matrix4f get_random_model_matrix(Vector3f n, float rotation_angle);
+                    <li>Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio, float zNear, float zFar);
+                    <li>Vector3f get_viewport(Vector4f& v, const int& width, const int& height);</b>
+                    </ul>
+	    	</ul>
+	    </td>
+	</tr>
+  </tbody>
+</table>
+
+### Gouraud Shading
+The main operation of Gouraud Shading is to calculate intensity of vertexes according to normals of vertexes, and then interpolate to color the inner points. 
+
+    vex.intensity[j] = std::max(0.f, vex.normal_coords[j] * light_dir);
+    float intensity = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, vex.intensity[0], vex.intensity[1], vex.intensity[2], 1); 
+    
+<img width="600" alt="theface" src="https://user-images.githubusercontent.com/74391884/163135581-60b94268-f0f5-406f-9669-44e494c644d1.png"><br>
+GouraudShader:
+
+    Vector4f GouraudShader::vertex(int i, int j, Vex& vex)
+    {
+      vex.world_coords[j] = model->vert(i, j);
+      vex.texture_coords[j] = model->uv(i, j);
+      vex.normal_coords[j] = model->normal(i,j);
+
+      Matrix4f M_model = get_model_matrix('Z', 45);
+      Matrix4f M_view = get_view_matrix(eye_pos);
+      Matrix4f M_pro = get_projection_matrix(45, 1, 0.1, 50);
+      Vector4f v(vex.world_coords[j].x, vex.world_coords[j].y, vex.world_coords[j].z, 1.f);
+      v = M_pro * M_view * M_model * v;
+      v = v / v.w;
+      return v;
+    }
+
+## Commit 4* : Corrections of some minor errors
+I encountered some errors when testing the model with different camera angles: <br>
+
+<img width="600" alt="theface" src="https://user-images.githubusercontent.com/74391884/162769239-feac4df0-2a99-4b7d-9334-e81ef6d50527.png"><br>
+
+This is a very interesting phenomenon, after discussing with friends and checking one by one. We found that the problem was the use of float type when iterating over fragments in a bounding box. To solve the accuracy problem, I decided to change the loop traversal to an integer type, and to use float type for all design to calculation.<br>
+
+<img width="600" alt="theface" src="https://user-images.githubusercontent.com/74391884/162769214-628a5a68-c102-4c3a-a79b-804253e67807.png"><br>
+
+    for (P.x = static_cast<int>(bboxleft.x); P.x <= static_cast<int>(bboxright.x); P.x++)
+      {
+        for (P.y = static_cast<int>(bboxleft.y); P.y <= static_cast<int>(bboxright.y); P.y++)
+        {
+          if (insideTriangle_byCross(static_cast<float>(P.x) + 0.5, static_cast<float>(P.y) + 0.5, vertex))
+          {
+            
+            Vector3f Barycentric = computeBarycentric2D(static_cast<float>(P.x) + 0.5, static_cast<float>(P.y) + 0.5, vertex);
+            float z = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, vertex[0], vertex[1], vertex[2], 1).z;//用三个顶点的z轴坐标插值出P点z值
+            Vector2f tex_coords = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, tex[0], tex[1], tex[2], 1);
+            int idx = P.x + P.y * width;
+            if (zbuffer[idx] > z)
+            {
+              TGAColor tex_color = model->diffuse(tex_coords);
+              zbuffer[idx] = z;
+              image.set(P.x, P.y, TGAColor(pow(intensity, 2.2) * tex_color.r, pow(intensity, 2.2) * tex_color.g, pow(intensity, 2.2) * tex_color.b, tex_color.a));
+            }
+          }
+        }
+      }
 
 ## Commit 4 : Matrix and coordinate transformations
 This update adds Matrix templates in geometry.h and implements a series of coordinate transformations in the pipeline.
@@ -140,16 +236,15 @@ Added a new 4-dimensional vector type and added matrix * 4-dimensional vector to
       return res;
     };
 
-###MVP part
+### MVP part
 This part we're going to do three transformations of the world vertex coordinates: MVP = M_pro * M_view * M_model * v; (don't forget viewport transformation finally)
 
-####Model transformation: 
-In this section I implemented the method of rotation about xyz axis and rotation about any axis:
-图片
+#### Model transformation:
+In this section I implemented the method of rotation about xyz axis and rotation about any axis: <br>
 
-####Camera transformation:
-This section implements the transformation of View Matrix：
-tu
+<img width="400" alt="theface" src="https://user-images.githubusercontent.com/74391884/162553304-c5c10efa-8995-4456-9dfc-aafd6b500531.png"><br>
+#### Camera transformation:
+This section implements the transformation of View Matrix: <br>
 
     Matrix4f Rasterizer::get_view_matrix(Vector3f eye_pos)
     {
@@ -178,8 +273,9 @@ tu
       return view;
     }
 
-####Projection transformation:
-The last part is projection transformation, including orthogonal transformation and perspective transformation:
+<img width="400" alt="theface" src="https://user-images.githubusercontent.com/74391884/162553327-8cc8f0c5-6988-4747-b191-f3ba66edb288.png"><br>
+#### Projection transformation:
+The last part is projection transformation, including orthogonal transformation and perspective transformation: <br>
 
     Matrix4f Rasterizer::get_projection_matrix(float eye_fov, float aspect_ratio, float zNear, float zFar)
     {
@@ -219,6 +315,7 @@ The last part is projection transformation, including orthogonal transformation 
       return projection;
     }
 
+<img width="400" alt="theface" src="https://user-images.githubusercontent.com/74391884/162553338-2700460a-196c-4b87-83dd-890f643e2add.png"><br>
 Added MVP transformation in Main:
 
       Vector3f vex = model->vert(face[j]);
@@ -230,7 +327,8 @@ Added MVP transformation in Main:
       v = v/v.w;
       screen_coords[j] = rst.get_viewport(v, width, height);
 
-####error record: about memset zbuffer
+#### error record: about memset zbuffer
+
 memset function can only be used for initialization and take care to input the correct nbyte! 
 
     TGAImage::TGAImage(int w, int h, int bpp) : data(nullptr), zbuffer(nullptr), width(w), height(h), bytespp(bpp) {
@@ -280,53 +378,49 @@ This update abstracts the previous rendering from tgaimage and adds the texture 
   </tbody>
 </table>
 
-overloading triangle:
+overloading triangle(Fix accuracy error in Commit 4*):
 
-    void Rasterizer::triangle(Vector3f* vertex, Vector2i* tex, TGAImage& image, Model* model, float& intensity)
-    {
-      int width = image.get_width();
-      float* zbuffer = image.get_zbuffer();
-      Vector2f bboxleft(std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-      Vector2f bboxright(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
-      Vector2f clamp(image.get_width() - 1, image.get_height() - 1);
-      for (int i = 0; i < 3; i++) //选取左下角与右上角的点构建包围盒
-      {
-        bboxleft.x = std::max(0.f, std::min(bboxleft.x, vertex[i].x));
-        bboxleft.y = std::max(0.f, std::min(bboxleft.y, vertex[i].y));
+	void Rasterizer::triangle(Vector3f* vertex, Vector2f* tex, TGAImage& image, Model* model, float& intensity)
+	{
+		int width = image.get_width();
+		float* zbuffer = image.get_zbuffer();
+		Vector2f bboxleft(std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+		Vector2f bboxright(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
+		Vector2f clamp(image.get_width() - 1, image.get_height() - 1);
+		for (int i = 0; i < 3; i++) //选取左下角与右上角的点构建包围盒
+		{
+			bboxleft.x = std::max(0.f, std::min(bboxleft.x, vertex[i].x));
+			bboxleft.y = std::max(0.f, std::min(bboxleft.y, vertex[i].y));
 
-        bboxright.x = std::min(clamp.x, std::max(bboxright.x, vertex[i].x));
-        bboxright.y = std::min(clamp.y, std::max(bboxright.y, vertex[i].y));
-      }
-      Vector3i P;
-      for (P.x = bboxleft.x; P.x <= bboxright.x; P.x++)
-      {
-        for (P.y = bboxleft.y; P.y <= bboxright.y; P.y++)
-        {
-          if (insideTriangle((float)P.x + 0.5, (float)P.y + 0.5, vertex))
-          {
-            Vector3f Barycentric = computeBarycentric2D((float)P.x + 0.5, (float)P.y + 0.5, vertex);
-            P.z = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, vertex[0], vertex[1], vertex[2], 1).z;//用三个顶点的z轴坐标插值出P点z值
-            Vector2i tex_coords = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, tex[0], tex[1], tex[2], 1);
-            if (zbuffer[(P.x + P.y * width)] < P.z)
-            {
-              TGAColor tex_color = model->diffuse(tex_coords);
-              zbuffer[(P.x + P.y * width)] = P.z;
-              image.set(P.x, P.y, TGAColor(pow(intensity, 2.2) * tex_color.r, pow(intensity, 2.2) * tex_color.g, pow(intensity, 2.2) * tex_color.b, tex_color.a));
-            }
-          }
-        }
-      }
-    }
-<<<<<<< HEAD
-Added texture colors and merged lighting effects：<br>
-<img width="400" alt="theface" src="https://user-images.githubusercontent.com/74391884/162105883-595fa3db-a2b7-41b7-be78-a5ed251a23d8.png"><br>
-=======
+			bboxright.x = std::min(clamp.x, std::max(bboxright.x, vertex[i].x));
+			bboxright.y = std::min(clamp.y, std::max(bboxright.y, vertex[i].y));
+		}
+		Vector3i P;
 
+		for (P.x = static_cast<int>(bboxleft.x); P.x <= static_cast<int>(bboxright.x); P.x++)
+		{
+			for (P.y = static_cast<int>(bboxleft.y); P.y <= static_cast<int>(bboxright.y); P.y++)
+			{
+				if (insideTriangle_byCross(static_cast<float>(P.x) + 0.5, static_cast<float>(P.y) + 0.5, vertex))
+				{
+
+					Vector3f Barycentric = computeBarycentric2D(static_cast<float>(P.x) + 0.5, static_cast<float>(P.y) + 0.5, vertex);
+					float z = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, vertex[0], vertex[1], vertex[2], 1).z;//用三个顶点的z轴坐标插值出P点z值
+					Vector2f tex_coords = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, tex[0], tex[1], tex[2], 1);
+					int idx = P.x + P.y * width;
+					if (zbuffer[idx] > z)
+					{
+						TGAColor tex_color = model->diffuse(tex_coords);
+						zbuffer[idx] = z;
+						image.set(P.x, P.y, TGAColor(pow(intensity, 2.2) * tex_color.r, pow(intensity, 2.2) * tex_color.g, pow(intensity, 2.2) * tex_color.b, tex_color.a));
+					}
+				}
+			}
+		}
+	}
 Added texture colors and merged lighting effects：<br>
 <img width="400" alt="theface" src="https://user-images.githubusercontent.com/74391884/162105883-595fa3db-a2b7-41b7-be78-a5ed251a23d8.png"><br>
 <br>
->>>>>>> 80ac336e753e3698f0b1f7eed2b0adae5fba3487
-
 ## Commit 2 : Code refactoring and zbuffer
 This update reconstructs the mathematics of the entire code framework, abandoning the old implementation in the tutorial.<br>
 <table>

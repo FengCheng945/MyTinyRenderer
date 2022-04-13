@@ -1,7 +1,5 @@
 #include "rasterizer.h"
-
 constexpr float INF = 1e-4;
-constexpr double MY_PI = 3.1415926;
 
 void Rasterizer::line(Vector2i t0, Vector2i t1, TGAImage& image, TGAColor color)
 {
@@ -92,7 +90,7 @@ static Vector3f interpolate(float alpha, float beta, float gamma, const Vector3f
 	return (alpha * vert1 + beta * vert2 + gamma * vert3) / weight;
 }
 
-static Vector2i interpolate(float alpha, float beta, float gamma, const Vector2i& vert1, const Vector2i& vert2, const Vector2i& vert3, float weight)
+static Vector2f interpolate(float alpha, float beta, float gamma, const Vector2f& vert1, const Vector2f& vert2, const Vector2f& vert3, float weight)
 {
 	auto u = (alpha * vert1[0] + beta * vert2[0] + gamma * vert3[0]);
 	auto v = (alpha * vert1[1] + beta * vert2[1] + gamma * vert3[1]);
@@ -100,153 +98,15 @@ static Vector2i interpolate(float alpha, float beta, float gamma, const Vector2i
 	u /= weight;
 	v /= weight;
 
-	return Vector2i(u, v);
+	return Vector2f(u, v);
 }
 
-Matrix4f Rasterizer::get_view_matrix(Vector3f eye_pos)
+static float interpolate(float alpha, float beta, float gamma, const float& vert1, const float& vert2, const float& vert3, float weight)
 {
-	//camera transformations: M_view = R_view * T_view
-	Vector3f up(0, 1, 0);
-	Matrix4f view; view.identity();
-	Vector3f z = eye_pos; z.normalize();
-	Vector3f x = up.cross(z).normalize();
-	Vector3f y = z.cross(x).normalize();
-	view << std::vector<float>{
-			x[0], x[1], x[2], 0,
-			y[0], y[1], y[2], 0,
-			z[0], z[1], z[2], 0,
-			0, 0, 0, 1
-	};
-	
-	Matrix4f translate;
-	translate <<
-		std::vector<float>{
-			1, 0, 0, -eye_pos[0],
-			0, 1, 0, -eye_pos[1],
-			0, 0, 1, -eye_pos[2],
-			0, 0, 0, 1
-	};
-	view *= translate;
-	return view;
+	return (alpha * vert1 + beta * vert2 + gamma * vert3) / weight;
 }
 
-Matrix4f Rasterizer::get_model_matrix(char n, float rotation_angle)
-{
-	Matrix4f model; model.identity();
-	float angle = rotation_angle * MY_PI / 180.0f;
-	if (n == 'X')
-	{
-		model << std::vector<float>{
-				1, 0, 0, 0,
-				0, std::cos(angle), -std::sin(angle), 0,
-				0, std::sin(angle), std::cos(angle), 0,
-				0, 0, 0, 1
-		};
-	}
-	else if (n == 'Y')
-	{
-		model << std::vector<float>{
-				std::cos(angle), 0, std::sin(angle), 0,
-				0, 1, 0, 0,
-				-std::sin(angle), 0, std::cos(angle), 0,
-				0, 0, 0, 1
-		};
-	}
-	else if (n == 'Z')
-	{
-		model << std::vector<float>{
-				std::cos(angle), -std::sin(angle), 0, 0,
-				std::sin(angle), std::cos(angle), 0, 0,
-				0, 0, 1, 0,
-				0, 0, 0, 1
-		};
-	}
-	return model;
-}
-
-Matrix3f v_dot_vT(const Vector3f& n)
-{
-	Matrix3f n_T;
-	n_T << std::vector<float>{
-			n.x, n.y, n.z,
-			0, 0, 0,
-			0, 0, 0
-	};
-	Matrix3f tmp;
-	tmp.m[0][0] = n.x;
-	tmp.m[1][0] = n.y;
-	tmp.m[2][0] = n.z;
-	tmp *= n_T;
-	return tmp;
-};
-
-Matrix4f Rasterizer::get_random_model_matrix(Vector3f n, float rotation_angle)
-{
-	Matrix4f model; model.identity();
-	float angle = rotation_angle * MY_PI / 180.0f;
-	float nx = n[0], ny = n[1], nz = n[2];
-	Matrix3f N;
-	N << std::vector<float>{
-			0, -nz, ny,
-			nz, 0, -nx,
-			-ny, nx, 0
-	};
-	Matrix3f I; I.identity();
-
-	Matrix3f R = I * std::cos(angle) +  v_dot_vT(n) * (1 - std::cos(angle))  + N * std::sin(angle);
-	model << std::vector<float>{
-			R(0, 0), R(0, 1), R(0, 2), 0,
-			R(1, 0), R(1, 1), R(1, 2), 0,
-			R(2, 0), R(2, 1), R(2, 2), 0,
-			0, 0, 0, 1
-	};
-	return model;
-}
-
-Matrix4f Rasterizer::get_projection_matrix(float eye_fov, float aspect_ratio, float zNear, float zFar)
-{
-	Matrix4f projection; projection.identity();
-	Matrix4f M_trans;
-	Matrix4f M_persp;
-	Matrix4f M_ortho;
-	M_persp << std::vector<float>{
-		zNear, 0, 0, 0,
-			0, zNear, 0, 0,
-			0, 0, zNear + zFar, -zFar * zNear,
-			0, 0, 1, 0
-	};
-
-	float alpha = 0.5 * eye_fov * MY_PI / 180.0f;
-	float yTop = -zNear * std::tan(alpha); //
-	float yBottom = -yTop;
-	float xRight = yTop * aspect_ratio;
-	float xLeft = -xRight;
-
-	M_trans << std::vector < float>{
-		1, 0, 0, -(xLeft + xRight) / 2,
-			0, 1, 0, -(yTop + yBottom) / 2,
-			0, 0, 1, -(zNear + zFar) / 2,
-			0, 0, 0, 1
-	};
-
-	M_ortho << std::vector < float>{
-		2 / (xRight - xLeft), 0, 0, 0,
-			0, 2 / (yTop - yBottom), 0, 0,
-			0, 0, 2 / (zNear - zFar), 0,
-			0, 0, 0, 1
-	};
-
-	M_ortho = M_ortho * M_trans;
-	projection = M_ortho * M_persp * projection;
-	return projection;
-}
-
-Vector3f Rasterizer::get_viewport(Vector4f& v, const int& width, const int& height)
-{
-	return Vector3f((v.x + 1.) * width * 0.5, (v.y + 1.) * height * 0.5, v.z);
-}
-
-void Rasterizer::triangle(Vector3f* vertex, TGAImage& image, TGAColor color)
+void Rasterizer::flat_triangle(Vector3f* vertex, Vector2f* tex, TGAImage& image, Model* model, float& intensity)
 {
 	int width = image.get_width();
 	float* zbuffer = image.get_zbuffer();
@@ -262,28 +122,34 @@ void Rasterizer::triangle(Vector3f* vertex, TGAImage& image, TGAColor color)
 		bboxright.y = std::min(clamp.y, std::max(bboxright.y, vertex[i].y));
 	}
 	Vector3i P;
-	for (P.x = bboxleft.x; P.x <= bboxright.x; P.x++)
+	
+	for (P.x = static_cast<int>(bboxleft.x); P.x <= static_cast<int>(bboxright.x); P.x++)
 	{
-		for (P.y = bboxleft.y; P.y <= bboxright.y; P.y++)
+		for (P.y = static_cast<int>(bboxleft.y); P.y <= static_cast<int>(bboxright.y); P.y++)
 		{
-			if (insideTriangle((float)P.x + 0.5, (float)P.y + 0.5, vertex))
+			if (insideTriangle_byCross(static_cast<float>(P.x) + 0.5, static_cast<float>(P.y) + 0.5, vertex))
 			{
-				Vector3f Barycentric = computeBarycentric2D((float)P.x + 0.5, (float)P.y + 0.5, vertex);
-				P.z = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, vertex[0], vertex[1], vertex[2], 1).z;//用三个顶点的z轴坐标插值出P点z值
 				
-				if (zbuffer[(P.x + P.y * width)] < P.z)
+				Vector3f Barycentric = computeBarycentric2D(static_cast<float>(P.x) + 0.5, static_cast<float>(P.y) + 0.5, vertex);
+				float z = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, vertex[0], vertex[1], vertex[2], 1).z;//用三个顶点的z轴坐标插值出P点z值
+				Vector2f tex_coords = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, tex[0], tex[1], tex[2], 1);
+				int idx = P.x + P.y * width;
+				if (zbuffer[idx] > z)
 				{
-					zbuffer[(P.x + P.y * width)] = P.z;
-					image.set(P.x, P.y, color);
+					TGAColor tex_color = model->diffuse(tex_coords);
+					zbuffer[idx] = z;
+					image.set(P.x, P.y, tex_color * pow(intensity,2.2));
 				}
 			}
 		}
 	}
 }
 
-void Rasterizer::triangle(Vector3f* vertex, Vector2i* tex, TGAImage& image, Model* model, float& intensity)
+void Rasterizer::triangle(Vex& vex, TGAImage& image, Model* model)
 {
-	int width = image.get_width();
+	Vector3f* vertex = vex.screen_coords;
+	Vector2f* tex = vex.texture_coords;
+	
 	float* zbuffer = image.get_zbuffer();
 	Vector2f bboxleft(std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
 	Vector2f bboxright(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
@@ -297,21 +163,25 @@ void Rasterizer::triangle(Vector3f* vertex, Vector2i* tex, TGAImage& image, Mode
 		bboxright.y = std::min(clamp.y, std::max(bboxright.y, vertex[i].y));
 	}
 	Vector3i P;
-	for (P.x = bboxleft.x; P.x <= bboxright.x; P.x++)
+
+	for (P.x = static_cast<int>(bboxleft.x); P.x <= static_cast<int>(bboxright.x); P.x++)
 	{
-		for (P.y = bboxleft.y; P.y <= bboxright.y; P.y++)
+		for (P.y = static_cast<int>(bboxleft.y); P.y <= static_cast<int>(bboxright.y); P.y++)
 		{
-			if (insideTriangle_byCross((float)P.x + 0.5, (float)P.y + 0.5, vertex))
+			if (insideTriangle_byCross(static_cast<float>(P.x) + 0.5, static_cast<float>(P.y) + 0.5, vertex))
 			{
-				
-				Vector3f Barycentric = computeBarycentric2D((float)P.x + 0.5, (float)P.y + 0.5, vertex);
-				P.z = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, vertex[0], vertex[1], vertex[2], 1).z;//用三个顶点的z轴坐标插值出P点z值
-				Vector2i tex_coords = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, tex[0], tex[1], tex[2], 1);
-				if (zbuffer[(P.x + P.y * width)] > P.z)
+				Vector3f Barycentric = computeBarycentric2D(static_cast<float>(P.x) + 0.5, static_cast<float>(P.y) + 0.5, vertex);
+				float z = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, vertex[0], vertex[1], vertex[2], 1).z;//用三个顶点的z轴坐标插值出P点z值
+				Vector2f tex_coords = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, tex[0], tex[1], tex[2], 1);
+
+				float intensity = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, vex.intensity[0], vex.intensity[1], vex.intensity[2], 1); //gouraudshading 特别处：用顶点的法向量计算顶点光照再插值给片段
+
+				int idx = P.x + P.y * image.get_width();
+				if (zbuffer[idx] > z)
 				{
 					TGAColor tex_color = model->diffuse(tex_coords);
-					zbuffer[(P.x + P.y * width)] = P.z;
-					image.set(P.x, P.y, TGAColor(pow(intensity, 2.2) * tex_color.r, pow(intensity, 2.2) * tex_color.g, pow(intensity, 2.2) * tex_color.b, tex_color.a));
+					zbuffer[idx] = z;
+					image.set(P.x, P.y, tex_color * pow(intensity, 1/2.2));
 				}
 			}
 		}
