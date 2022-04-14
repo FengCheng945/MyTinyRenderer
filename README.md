@@ -176,8 +176,24 @@ However, this implementation brings a problem: here the N vector in our TBN matr
 <img width="600" alt="theface" src="https://user-images.githubusercontent.com/74391884/163396274-f44857c8-70d1-4626-930e-6453f74433fe.png"><br>
 This prompted me to think: since the transition of the normal vector of the triangle is not smooth, should we use the normal vector of each fragment to interpolate? Therefore I started by moving all the TBN matrix calculations into the fragment shader, but that brings in a lot of repetitive operations. 
 In the end, I used gouraud shader to calculate T and B, and fragment shader to calculate the normal vector interpolation N of each pixel point to form the TBN matrix. The result is pretty good:
+			  
 <img width="600" alt="theface" src="https://user-images.githubusercontent.com/74391884/163406964-abc3cbb2-77e3-471b-aa62-0d6b7aa6e480.png"><br>
 
+	if (zbuffer[idx] > z)
+            {
+              Vector2f tex_coords = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, tex[0], tex[1], tex[2], 1);
+              Vector3f N = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, normal[0], normal[1], normal[2], 1);
+              //fragment shader
+              vex.set_TBN(N);
+              TGAColor tex_color = model->diffuse(tex_coords);
+              Vector3f n = model->normal(tex_coords);
+              n.normalize();
+              n = vex.TBN * n;
+              float intensity = std::max(0.f,n.normalize() * light_dir);
+
+              zbuffer[idx] = z;
+              image.set(P.x, P.y, tex_color * intensity);
+            }
 			  
 ## Commit 5 : Code Refactoring and Gouraud Shading
 In this submission I added a triangle vertex type to store various information about vertices. And abstracts the MVP transform, which was previously placed in rasterizer, into a separate vertex shader. Moreover, I updated the Gouraud Shading method: <br>
