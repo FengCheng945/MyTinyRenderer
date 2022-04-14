@@ -128,7 +128,7 @@ Written in matrix form and derived:
 There are two ways to achieve this:
 1. We can directly use the TBN matrix, which can convert the vector of the tangent coordinate space to the world coordinate space. So we pass it to the fragment shader, multiply the sampled normal coordinates by the TBN matrix, and convert it to the world coordinate space, so that all the normals and other lighting variables are in the same coordinate system.
 2. We can also use the inverse of the TBN matrix, which can convert vectors in the world coordinate space to the tangent coordinate space. So we take this matrix and multiply it by the other lighting variables, and convert them to tangent space, so that the normals and the other lighting variables are once again in the same coordinate system.
-The implementation has the following form in code:
+The implementation has the following form in code:<br>
 
     void Vex::set_TBN()
     {
