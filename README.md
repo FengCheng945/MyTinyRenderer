@@ -3,9 +3,72 @@
 This software rendering is my personal project following [the wiki](https://github.com/ssloy/tinyrenderer). The main use of the course given obj resources and TGAImage file output framework. I wrote the code for the render pipeline by hand, and I'm constantly adding new features. Meanwhile, I also referenced [LearnOpenGL](https://learnopengl-cn.github.io/intro/) to implement some new funcions.
 
 ## Description
-This document is a detailed review of the significant commits to this repository from the very beginning of the project. 
+This document is a detailed review of the significant commits to this repository from the very beginning of the project.
+
+## Commit 6 : TBN matrix and Bumping Mapping
+
+This submission mainly includes code optimization, TBN matrix calculation, normal mapping and phong shading. In terms of code optimization, I found that there were a lot of previous problems with double counting, such as the three matrices in MVP transformation. So in this commit I abstracted that as member variables of gouraud shader to avoid double-counting. 
+Moreover, regarding the TBN matrix, which I have to say is a difficult piece of knowledge, I implemented this method in the fragment shader. Next I will discuss the problems encountered in the implementation process of TBN matrix. 
+
+<table>
+  <tbody>
+    <tr>
+      <th align="center">file update</th>
+      <th align="center">Description</th>
+    </tr>
+	<tr>
+      <td align="left">
+      <ul>
+                Vex.h<br>
+                shader.h/cpp<br>
+	    	</ul>
+      </td>
+	    <td align="left">
+	    	<ul>
+	    		<li><b> Update Function:</b>
+                <li><b>Vex.h</b>: to store all information about a vertex</li>
+                <ul>
+                  <li>Matrix3f TBN;
+                  <li>void set_TBN();
+                  <li>void set_TBN(Vector3f& N);
+                </ul>
+	    		<li><b>class GouraudShader :public Shader</b>: Build various shader methods
+                    <ul>
+                    <li>private:
+                    <li>Matrix4f M_model;
+                    <li>Matrix4f M_view;
+                    <li>Matrix4f M_projection;
+                    <li>public:
+                    <li>GouraudShader();
+                    <li>virtual ~GouraudShader() = default;
+                    <li>virtual Vector4f vertex(int i, int j, Vex& vex);
+                    <li>void set_view_matrix(Vector3f eye_pos);
+                    <li>void set_model_matrix(char n, float rotation_angle);
+                    <li>void set_random_model_matrix(Vector3f n, float rotation_angle);
+                    <li>void set_projection_matrix(float eye_fov, float aspect_ratio, float zNear, float zFar);
+                    <li>Matrix4f get_view_matrix();
+                    <li>Matrix4f get_model_matrix();
+                    <li>Matrix4f get_projection_matrix();
+                    <li>Vector3f get_viewport(Vector4f& v, const int& width, const int& height);
+                    </ul>
+	    	</ul>
+	    </td>
+	</tr>
+  </tbody>
+</table>
+
+### Bumping Mapping and TBN
+A common application of textures is bumping mapping, which is divided into two modes: Height mapping and normal mapping. Normal mapping directly stores the normals of an object surface, while height mapping calculates the normals of an object surface by height. Therefore, Normal mapping is better in efficiency. Normal maps are usually divided into object space and tangent space. However, the normal map of object space fails after the rotation and movement operation and does not have generality. So the normal map of tangent space is usually used. Tangent space normal map, z axis is always towards (0,0,1).  
+As for the tangent space, it is constituted by the three information of the normal (N), tangent (T) and auxiliary tangent (B) of the vertex itself as zxy axis respectively. We can convert the light direction and view direction to the tangent space and calculate intensity in the vertex shader. And can also transform the normals that sampled from the tangent space to the world space and perform matrix multiplication in the fragment shader.
+
+<img width="600" src="https://user-images.githubusercontent.com/74391884/163389284-79a170fa-5b43-404d-82a6-bd1dac09d323.png"><br>
+For the image above, the image on the left is the normal mapping of object space, which stores normal vectors in all directions, so it is colorful. On the right is the normal mapping of tangent space, which is blue because z axis is always towards (0,0,1) in the space.
+
+<img width="600" src="https://user-images.githubusercontent.com/74391884/163390337-0c38502c-354d-4c11-ac8c-e3b003089f33.png"><br>
+To use normal mapping in object space we simply interpolate texture coordinates and read the corresponding normals.
+
 ## Commit 5 : Code Refactoring and Gouraud Shading
-In this submission I added a triangle vertex type to store various information about vertices. And abstracts the MVP transform, which was previously placed in rasterizer, into a separate vertex shader. Moreover， I updated the Gouraud Shading method: <br>
+In this submission I added a triangle vertex type to store various information about vertices. And abstracts the MVP transform, which was previously placed in rasterizer, into a separate vertex shader. Moreover, I updated the Gouraud Shading method: <br>
 <table>
   <tbody>
     <tr>
