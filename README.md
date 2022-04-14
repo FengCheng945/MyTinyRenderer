@@ -18,7 +18,6 @@ Moreover, regarding the TBN matrix, which I have to say is a difficult piece of 
     </tr>
 	<tr>
       <td align="left">
-	      
       <ul>
                 Vex.h<br>
                 shader.h/cpp<br>
@@ -27,6 +26,11 @@ Moreover, regarding the TBN matrix, which I have to say is a difficult piece of 
 	    <td align="left">
 	    	<ul>
 	    		<li><b> Update Function:</b>
+                <li><b>geometry.h</b>
+                <ul>
+                  <li>inline Matrix<T, NROW, NCOL2> operator*(const Matrix<T, NROW, NCOL>&m ,const Matrix<T, NCOL, NCOL2>& mcpy);
+                  <li>inline Vector<T, NROW> operator*(const Matrix<T, NROW, NCOL>&m ,const Vector<T, NCOL>& v);
+                </ul>
                 <li><b>Vex.h</b>: to store all information about a vertex</li>
                 <ul>
                   <li>Matrix3f TBN;
@@ -130,6 +134,44 @@ There are two ways to achieve this:
 2. We can also use the inverse of the TBN matrix, which can convert vectors in the world coordinate space to the tangent coordinate space. So we take this matrix and multiply it by the other lighting variables, and convert them to tangent space, so that the normals and the other lighting variables are once again in the same coordinate system.
 The implementation has the following form in code:<br>
 
+    void Vex::set_TBN()
+    {
+        float u1 = texture_coords[0].x;
+        float v1 = texture_coords[0].y;
+        float u2 = texture_coords[1].x;
+        float v2 = texture_coords[1].y;
+        float u3 = texture_coords[2].x;
+        float v3 = texture_coords[2].y;
+        float deltaU1 = u2 - u1;
+        float deltaU2 = u3 - u1;
+        float deltaV1 = v2 - v1;
+        float deltaV2 = v3 - v1;
+        Matrix<float, 2, 3> E; //edge
+        E << std::vector<float>{
+            world_coords[1].x - world_coords[0].x, world_coords[1].y - world_coords[0].y, world_coords[1].z - world_coords[0].z,
+                world_coords[2].x - world_coords[0].x, world_coords[2].y - world_coords[0].y, world_coords[2].z - world_coords[0].z
+        };
+        Matrix2f UV_inv;
+        UV_inv << std::vector<float>{
+            deltaV2, -deltaV1,
+                -deltaU2, deltaU1
+        };
+        UV_inv *= 1.f / (deltaU1 * deltaV2 - deltaU2 * deltaV1);
+        Matrix<float, 2, 3> TB;
+        TB = UV_inv * E;
+        Vector3f T(TB.m[0][0], TB.m[0][1], TB.m[0][2]);
+        Vector3f B(TB.m[1][0], TB.m[1][1], TB.m[1][2]);
+        Vector3f N = (world_coords[1] - world_coords[0]).cross(world_coords[2] - world_coords[0]);
+        T.normalize();
+        B.normalize();
+        
+        TBN << std::vector<float>{
+            T[0], B[0], N[0],
+                T[1], B[1], N[1],
+                T[2], B[2], N[2]
+        };
+    }
+			  
 However, this implementation brings a problem: here the N vector in our TBN matrix is the normal vector from the triangle plane, which leads to the problem of uneven transition between triangles.
 ![image](https://user-images.githubusercontent.com/74391884/163396274-f44857c8-70d1-4626-930e-6453f74433fe.png)<br>
 
