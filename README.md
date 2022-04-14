@@ -130,9 +130,9 @@ Written in matrix form and derived:
 ![image](https://user-images.githubusercontent.com/74391884/163394371-9e3b1ad7-a15c-4606-b1f5-221b233fef7a.png)<br>
 ![image](https://user-images.githubusercontent.com/74391884/163394405-8d35d3df-9bc4-49be-8e69-bee9891d541a.png)<br>
 There are two ways to achieve this:
-1. We can directly use the TBN matrix, which can convert the vector of the tangent coordinate space to the world coordinate space. So we pass it to the fragment shader, multiply the sampled normal coordinates by the TBN matrix, and convert it to the world coordinate space, so that all the normals and other lighting variables are in the same coordinate system.
-2. We can also use the inverse of the TBN matrix, which can convert vectors in the world coordinate space to the tangent coordinate space. So we take this matrix and multiply it by the other lighting variables, and convert them to tangent space, so that the normals and the other lighting variables are once again in the same coordinate system.
-The implementation has the following form in code:<br>
+<li>We can directly use the TBN matrix, which can convert the vector of the tangent coordinate space to the world coordinate space. So we pass it to the fragment shader, multiply the sampled normal coordinates by the TBN matrix, and convert it to the world coordinate space, so that all the normals and other lighting variables are in the same coordinate system.</li>
+<li>We can also use the inverse of the TBN matrix, which can convert vectors in the world coordinate space to the tangent coordinate space. So we take this matrix and multiply it by the other lighting variables, and convert them to tangent space, so that the normals and the other lighting variables are once again in the same coordinate system.</li>
+The implementation has the following form in code:
 
     void Vex::set_TBN()
     {
@@ -171,9 +171,10 @@ The implementation has the following form in code:<br>
                 T[2], B[2], N[2]
         };
     }
-			  
+
 However, this implementation brings a problem: here the N vector in our TBN matrix is the normal vector from the triangle plane, which leads to the problem of uneven transition between triangles.
-![image](https://user-images.githubusercontent.com/74391884/163396274-f44857c8-70d1-4626-930e-6453f74433fe.png)<br>
+<img width="600" alt="theface" src="https://user-images.githubusercontent.com/74391884/163396274-f44857c8-70d1-4626-930e-6453f74433fe.png"><br>
+			  
 
 ## Commit 5 : Code Refactoring and Gouraud Shading
 In this submission I added a triangle vertex type to store various information about vertices. And abstracts the MVP transform, which was previously placed in rasterizer, into a separate vertex shader. Moreover, I updated the Gouraud Shading method: <br>
