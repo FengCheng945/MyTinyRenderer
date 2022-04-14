@@ -195,6 +195,8 @@ In the end, I used gouraud shader to calculate T and B, and fragment shader to c
               image.set(P.x, P.y, tex_color * intensity);
             }
 			  
+But the validity of this approach is questionable, as I haven't seen anything like it in tutorials. For more implementation details please read my source code.
+			  
 ## Commit 5 : Code Refactoring and Gouraud Shading
 In this submission I added a triangle vertex type to store various information about vertices. And abstracts the MVP transform, which was previously placed in rasterizer, into a separate vertex shader. Moreover, I updated the Gouraud Shading method: <br>
 <table>
