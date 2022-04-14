@@ -18,6 +18,7 @@ Moreover, regarding the TBN matrix, which I have to say is a difficult piece of 
     </tr>
 	<tr>
       <td align="left">
+	      
       <ul>
                 Vex.h<br>
                 shader.h/cpp<br>
@@ -57,6 +58,55 @@ Moreover, regarding the TBN matrix, which I have to say is a difficult piece of 
   </tbody>
 </table>
 
+### About the new matrix multiplication
+
+    Matrix<float, 2, 3>  m;
+    m << std::vector<float>{
+        1, 2, 3,
+            1, 2, 3,
+    };
+    Matrix2f n;
+    n << std::vector<float>{
+        1, 2,
+            1, 2
+    };
+    (n* m).show();
+    /*3 6 9
+      3 6 9*/
+
+The matrix multiplication of different dimensions and matrix and vector multiplication are realized.
+
+    template<typename T, size_t NROW, size_t NCOL, size_t NCOL2>
+    inline Matrix<T, NROW, NCOL2> operator*(const Matrix<T, NROW, NCOL>&m ,const Matrix<T, NCOL, NCOL2>& mcpy)
+    {
+      Matrix<T, NROW, NCOL2> tmp;
+      for (int i = 0; i < NROW; i++)
+      {
+        for (int j = 0; j < NCOL2; j++)
+        {
+          for (int k = 0; k < NCOL; k++)
+          {
+            tmp.m[i][j] += m.m[i][k] * mcpy.m[k][j];
+          }
+        }
+      }
+      return tmp;
+    };
+
+    template<typename T, size_t NROW, size_t NCOL>
+    inline Vector<T, NROW> operator*(const Matrix<T, NROW, NCOL>&m ,const Vector<T, NCOL>& v)
+    {
+      Vector<T, NROW> tmp;
+      for (int i = 0; i < NROW; i++)
+      {
+        for (int j = 0; j < NCOL; j++)
+        {
+          tmp[i] += m.m[i][j] * v[j];
+        }
+      }
+      return tmp;
+    };
+    
 ### Bumping Mapping and TBN
 A common application of textures is bumping mapping, which is divided into two modes: Height mapping and normal mapping. Normal mapping directly stores the normals of an object surface, while height mapping calculates the normals of an object surface by height. Therefore, Normal mapping is better in efficiency. Normal maps are usually divided into object space and tangent space. However, the normal map of object space fails after the rotation and movement operation and does not have generality. So the normal map of tangent space is usually used. Tangent space normal map, z axis is always towards (0,0,1).  
 As for the tangent space, it is constituted by the three information of the normal (N), tangent (T) and auxiliary tangent (B) of the vertex itself as zxy axis respectively. We can convert the light direction and view direction to the tangent space and calculate intensity in the vertex shader. And can also transform the normals that sampled from the tangent space to the world space and perform matrix multiplication in the fragment shader.
@@ -66,6 +116,60 @@ For the image above, the image on the left is the normal mapping of object space
 
 <img width="600" src="https://user-images.githubusercontent.com/74391884/163390337-0c38502c-354d-4c11-ac8c-e3b003089f33.png"><br>
 To use normal mapping in object space we simply interpolate texture coordinates and read the corresponding normals.
+
+### The calculation part of TBN matrix
+TBN matrix derivation process I learned [LearnOpenGL](https://learnopengl-cn.github.io/05%20Advanced%20Lighting/04%20Normal%20Mapping/#_2) method. 
+![image](https://user-images.githubusercontent.com/74391884/163393210-3da01c8f-67a2-4755-a4bd-19adb932e9ed.png)<br>
+The three vertices of the triangle come from the world coordinate system, and the tangent space is the space located on the surface of the triangle. So for triangles in tangent space we have the following relationship:
+![image](https://user-images.githubusercontent.com/74391884/163394261-589c8925-f4e1-4b7a-ab12-e043480d9030.png)<br>
+Written in matrix form and derived:
+![image](https://user-images.githubusercontent.com/74391884/163394371-9e3b1ad7-a15c-4606-b1f5-221b233fef7a.png)<br>
+![image](https://user-images.githubusercontent.com/74391884/163394405-8d35d3df-9bc4-49be-8e69-bee9891d541a.png)<br>
+There are two ways to achieve this:
+1. We can directly use the TBN matrix, which can convert the vector of the tangent coordinate space to the world coordinate space. So we pass it to the fragment shader, multiply the sampled normal coordinates by the TBN matrix, and convert it to the world coordinate space, so that all the normals and other lighting variables are in the same coordinate system.
+2. We can also use the inverse of the TBN matrix, which can convert vectors in the world coordinate space to the tangent coordinate space. So we take this matrix and multiply it by the other lighting variables, and convert them to tangent space, so that the normals and the other lighting variables are once again in the same coordinate system.
+The implementation has the following form in code:
+
+    void Vex::set_TBN()
+    {
+        float u1 = texture_coords[0].x;
+        float v1 = texture_coords[0].y;
+        float u2 = texture_coords[1].x;
+        float v2 = texture_coords[1].y;
+        float u3 = texture_coords[2].x;
+        float v3 = texture_coords[2].y;
+        float deltaU1 = u2 - u1;
+        float deltaU2 = u3 - u1;
+        float deltaV1 = v2 - v1;
+        float deltaV2 = v3 - v1;
+        Matrix<float, 2, 3> E; //edge
+        E << std::vector<float>{
+            world_coords[1].x - world_coords[0].x, world_coords[1].y - world_coords[0].y, world_coords[1].z - world_coords[0].z,
+                world_coords[2].x - world_coords[0].x, world_coords[2].y - world_coords[0].y, world_coords[2].z - world_coords[0].z
+        };
+        Matrix2f UV_inv;
+        UV_inv << std::vector<float>{
+            deltaV2, -deltaV1,
+                -deltaU2, deltaU1
+        };
+        UV_inv *= 1.f / (deltaU1 * deltaV2 - deltaU2 * deltaV1);
+        Matrix<float, 2, 3> TB;
+        TB = UV_inv * E;
+        Vector3f T(TB.m[0][0], TB.m[0][1], TB.m[0][2]);
+        Vector3f B(TB.m[1][0], TB.m[1][1], TB.m[1][2]);
+        Vector3f N = (world_coords[1] - world_coords[0]).cross(world_coords[2] - world_coords[0]);
+        T.normalize();
+        B.normalize();
+        
+        TBN << std::vector<float>{
+            T[0], B[0], N[0],
+                T[1], B[1], N[1],
+                T[2], B[2], N[2]
+        };
+    }
+
+However, this implementation brings a problem: here the N vector in our TBN matrix is the normal vector from the triangle plane, which leads to the problem of uneven transition between triangles.
+![image](https://user-images.githubusercontent.com/74391884/163396274-f44857c8-70d1-4626-930e-6453f74433fe.png)<br>
 
 ## Commit 5 : Code Refactoring and Gouraud Shading
 In this submission I added a triangle vertex type to store various information about vertices. And abstracts the MVP transform, which was previously placed in rasterizer, into a separate vertex shader. Moreover, I updated the Gouraud Shading method: <br>
