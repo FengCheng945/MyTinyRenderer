@@ -174,8 +174,11 @@ The implementation has the following form in code:
 
 However, this implementation brings a problem: here the N vector in our TBN matrix is the normal vector from the triangle plane, which leads to the problem of uneven transition between triangles.
 <img width="600" alt="theface" src="https://user-images.githubusercontent.com/74391884/163396274-f44857c8-70d1-4626-930e-6453f74433fe.png"><br>
-			  
+This prompted me to think: since the transition of the normal vector of the triangle is not smooth, should we use the normal vector of each fragment to interpolate? Therefore I started by moving all the TBN matrix calculations into the fragment shader, but that brings in a lot of repetitive operations. 
+In the end, I used gouraud shader to calculate T and B, and fragment shader to calculate the normal vector interpolation N of each pixel point to form the TBN matrix. The result is pretty good:
+<img width="600" alt="theface" src="https://user-images.githubusercontent.com/74391884/163406964-abc3cbb2-77e3-471b-aa62-0d6b7aa6e480.png"><br>
 
+			  
 ## Commit 5 : Code Refactoring and Gouraud Shading
 In this submission I added a triangle vertex type to store various information about vertices. And abstracts the MVP transform, which was previously placed in rasterizer, into a separate vertex shader. Moreover, I updated the Gouraud Shading method: <br>
 <table>
