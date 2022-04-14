@@ -5,7 +5,7 @@ This software rendering is my personal project following [the wiki](https://gith
 ## Description
 This document is a detailed review of the significant commits to this repository from the very beginning of the project. 
 ## Commit 5 : Code Refactoring and Gouraud Shading
-For this commit I updated the Gouraud Shaing method :<br>
+In this submission I added a triangle vertex type to store various information about vertices. And abstracts the MVP transform, which was previously placed in rasterizer, into a separate vertex shader. Moreover， I updated the Gouraud Shading method: <br>
 <table>
   <tbody>
     <tr>
