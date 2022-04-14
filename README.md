@@ -1,6 +1,6 @@
 # MyTinyRenderer
 
-This software rendering is my personal project following [the wiki](https://github.com/ssloy/tinyrenderer). The main use of the course given obj resources and TGAImage file output framework. I wrote the code for the render pipeline by hand, and I'm constantly adding new features.
+This software rendering is my personal project following [the wiki](https://github.com/ssloy/tinyrenderer). The main use of the course given obj resources and TGAImage file output framework. I wrote the code for the render pipeline by hand, and I'm constantly adding new features. Meanwhile, I also referenced [LearnOpenGL](https://learnopengl-cn.github.io/intro/) to implement some new funcions.
 
 ## Description
 This document is a detailed review of the significant commits to this repository from the very beginning of the project. 
