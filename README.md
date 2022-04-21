@@ -19,6 +19,7 @@ Moreover, regarding the TBN matrix, which I have to say is a difficult piece of 
 	<tr>
       <td align="left">
       <ul>
+	      	geometry.h<br>
                 Vex.h<br>
                 shader.h/cpp<br>
 	    	</ul>
@@ -28,8 +29,8 @@ Moreover, regarding the TBN matrix, which I have to say is a difficult piece of 
 	    		<li><b> Update Function:</b>
                 <li><b>geometry.h</b>
                 <ul>
-                  <li>inline Matrix<T, NROW, NCOL2> operator*(const Matrix<T, NROW, NCOL>&m ,const Matrix<T, NCOL, NCOL2>& mcpy);
-                  <li>inline Vector<T, NROW> operator*(const Matrix<T, NROW, NCOL>&m ,const Vector<T, NCOL>& v);
+                  <li>inline Matrix&ltT, NROW, NCOL2> operator*(const Matrix&ltT, NROW, NCOL>&m ,const Matrix&ltT, NCOL, NCOL2>& mcpy);
+                  <li>inline Vector&ltT, NROW> operator*(const Matrix&ltT, NROW, NCOL>&m ,const Vector&ltT, NCOL>& v);
                 </ul>
                 <li><b>Vex.h</b>: to store all information about a vertex</li>
                 <ul>
