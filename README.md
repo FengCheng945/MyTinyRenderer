@@ -117,6 +117,49 @@ I have previously written related articles about the blin-Phong model, if you ar
 <img width="600" alt="zhihu" src="https://user-images.githubusercontent.com/74391884/164402867-7e097410-e480-49af-b650-ce0a176cb6ef.png"><br>
 Here is the render result:<br>
 <img width="600" alt="theface" src="https://user-images.githubusercontent.com/74391884/164403081-905fc51b-99b4-4100-ae1d-edddc12de483.png"><br>
+### About the Shadow Mapping
+The idea of a shadow map is to render from the point of view of light source, so that everything you can see is illuminated and everything you can't see is in shadow.
+Firstly, render the scene with view and projection transformations based on the position of the light source. The main purpose of this step is to store the depth values in the texture, which is called the shadow map (also called the depth map). Save both the view matrix and the projection matrix, which can transform any position into the view space of the light source. The depth value sampled from the depth map. It is the depth of the first object seen from the light source, which is a key to determine if an object is in shadow.
+Secondly, rendering from the view of camera. Before coloring each segment, transform the position of the object's vertices in the world coordinates to the view space of the light source. Transform to the vertex in the light source space and perform perspective division to get the NDC coordinates in the light source space. The actual depth value of the vertex in the NDC space is then compared with the corresponding depth value in the depth map. If the depth value is greater than the depth value in the map, the point is in shadow.
+![image](https://user-images.githubusercontent.com/74391884/164478689-6dc70e2a-795c-4bba-8ae2-d3d33c969cca.png)<br>
+### About the code:
+In the code section, I interpolate the vertices in the saved space to get the current fragment. This method avoids the calculation of inverse matrices, which convert points on the screen back into space. After the point in world space is transformed into the light source space, the z value is calculated to judge whether the point has a shadow. 
+```
+TGAColor PhongShader::framebuffer(Vector3f& Barycentric, Vex& vex)
+{
+	Vector3f p = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, vex.world_coords[0], vex.world_coords[1], vex.world_coords[2], 1);
+
+	Vector4f shadow_p = MS_view * Vector4f { p[0], p[1], p[2], 1.f };
+
+	int idx = (int)(shadow_p[0]/shadow_p.w) + (int)(shadow_p[1]/shadow_p.w) * width;
+
+	float shadow = .3 + 0.7 * (shadowbuffer[idx] + 0.3 > shadow_p[2]); //0.3用来解决z-fighting问题
+
+	Vector2f* tex = vex.texture_coords;
+	Vector3f* normal = vex.normal_coords;
+	Vector2f tex_coords = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, tex[0], tex[1], tex[2], 1);
+	Vector3f N = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, normal[0], normal[1], normal[2], 1);
+	//fragment shader
+	vex.set_TBN(N);
+	TGAColor tex_color = model->diffuse(tex_coords);
+	Vector3f n = model->normal(tex_coords);
+	n.normalize();
+	n = (vex.TBN * n).normalize();
+	/*Vector3f r = (n * (n * light_dir * 2.f) - light_dir).normalize(); 这里是Phong反射模型，逐点计算了出射方向r，没有必要*/
+	Vector3f h = (eye_pos + light_dir).normalize(); //直接计算半程向量为Blin-Phong模型
+	float spec = pow(std::max(n*h, 0.0f), model->specular(tex_coords));
+	float diff = std::max(0.f, n * light_dir);
+
+	for (int i = 0; i < 3; i++) tex_color[i] = std::min<float>( 5 + tex_color[i]* shadow * (1.2 * diff + .6 * spec), 255);
+	return tex_color;
+};
+```
+You'll notice that there are a number of parameters, some of which are tweaked to get a better image. But 'shadowbuffer[idx] + 0.3' is intended to solve the Z-fighting problem.<br>
+<img width="600" src="https://user-images.githubusercontent.com/74391884/164478769-14c87626-3665-4b78-b3b8-ae73c47aaa17.png"><br>
+After simple adjustment can get good shadow effect:<br>
+![image](https://user-images.githubusercontent.com/74391884/164478946-8f616db0-5bde-4dc7-a6ac-3c0f3d876fcd.png)<br>
+![image](https://user-images.githubusercontent.com/74391884/164479383-01eab4ff-f867-4fe1-981b-4d07ac0b9feb.png)<br>
+
 ## Commit 6 : TBN matrix and Bumping Mapping
 
 This submission mainly includes code optimization, TBN matrix calculation, normal mapping and phong shading. In terms of code optimization, I found that there were a lot of previous problems with double counting, such as the three matrices in MVP transformation. So in this commit I abstracted that as member variables of gouraud shader to avoid double-counting. 
