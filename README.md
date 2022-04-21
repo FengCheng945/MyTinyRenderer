@@ -1,9 +1,166 @@
 # MyTinyRenderer
 
-This software rendering is my personal project following [the wiki](https://github.com/ssloy/tinyrenderer). The main use of the course given obj resources and TGAImage file output framework. I wrote the code for the render pipeline by hand, and I'm constantly adding new features. Meanwhile, I also referenced [LearnOpenGL](https://learnopengl-cn.github.io/intro/) to implement some new funcions.
-
+This software rendering is my personal project following [the wiki](https://github.com/ssloy/tinyrenderer). The main use of the course given obj resources and TGAImage file output framework. I wrote the code for the render pipeline by hand, and I'm constantly adding new features. Meanwhile, I also referenced [LearnOpenGL](https://learnopengl-cn.github.io/intro/) to implement some new funcions.<br>
+![image](https://user-images.githubusercontent.com/74391884/164470023-f954311f-4799-4ca5-903d-cbd2f8bc9599.png)<br>
 ## Description
 This document is a detailed review of the significant commits to this repository from the very beginning of the project.
+
+## Commit 7 : Shadow Mapping and Blin-Phong Reflection model
+This submission mainly includes code optimization, shadow mapping and Blin-Phong Reflection model implementation. In terms of code optimization, I fixed some previous errors and abstracted fragment shader from the rasterization method as a function of vertex shader and moved perspective division from vertex shader to viewport transform. In addition, I implemented shadow mapping and blin-phong reflection models to make our rendering look more vivid. Since the previous GouraudShading method was completely abandoned by me, I renamed the whole category PhongShader. In terms of shadow, I created the Depth Shader, which inherits from the Phong Shader. It is mainly used to establish the shadowbuffer. 
+<b>To calculate the shadow map and normal matrix, I also added matrix inverse, determinant and adjoint matrix template method, suitable for any dimension matrix.</b>
+
+<table>
+  <tbody>
+    <tr>
+      <th align="center">file update</th>
+      <th align="center">Description</th>
+    </tr>
+	<tr>
+      <td align="left">
+      <ul>
+                geometry.h<br>
+                shader.h/cpp<br>
+	    	</ul>
+      </td>
+	    <td align="left">
+	    	<ul>
+	    		<li><b> Update Function:</b>
+                <li><b>geometry.h</b>
+                <ul>
+                  <li>Matrix&ltT, NROW, NCOL> transpose();
+                  <li>double det();
+                  <li>double cofactor(const int row, const int col) const;
+                  <li>Matrix&ltT, NROW-1, NCOL-1> minor(const int row, const int col) const;
+                  <li>Matrix&ltT, NROW, NCOL> adjugate() const;
+                  <li>Matrix&ltT, NROW, NCOL> inverse();
+                  <li>Matrix&ltT, NROW, NCOL> inverse_transpose();
+                  <li>template&lttypename T, size_t N> struct dt;
+                  <li>template&lttypename T> struct dt&ltT,1>;
+                </ul>
+	    		<li><b>class PhongShader :public Shader</b>: Build various shader methods
+                    <ul>
+                    <li>virtual TGAColor framebuffer(Vector3f& Barycentric, Vex& vex);
+		    <li>float* shadowbuffer = nullptr;
+                    <li>class DepthShader :public PhongShader;    
+                    </ul>
+	    	</ul>
+	    </td>
+	</tr>
+  </tbody>
+</table>
+
+### About the new matrix multiplication
+```
+  //抽象行列式的原因是，要用偏特化来实现if(行列=1)的效果，因为if是在运行期间确定，所以不能和模板搭配使用
+  template<typename T, size_t N> struct dt
+  {
+    static double det(const Matrix<T, N, N>& src)
+    {
+      double ret = 0;
+      for (int i = N; i--; ret += src.m[0][i] * src.cofactor(0, i));
+      return ret;
+    }
+  };
+  template<typename T> struct dt<T,1>
+  {
+    static double det(const Matrix<T, 1, 1>& src)
+    {
+      return src.m[0][0];
+    }
+  };
+
+  template<typename T, size_t NROW, size_t NCOL>
+  double Matrix<T, NROW, NCOL>::det()
+  {//行列式计算公式：按任意一行展开并乘上对应位置的代数余子式
+    assert(NROW == NCOL);
+    return dt<T,NROW>::det(*this);
+  }
+  template<typename T, size_t NROW, size_t NCOL>
+  double Matrix<T, NROW, NCOL>::cofactor(const int row, const int col) const
+  {//代数余子式计算：去掉row行col列的矩阵的行列式，若该位置行列和为偶数就*-1
+
+    return minor(row, col).det() * ((row + col) % 2 ? -1 : 1);
+  }
+  template<typename T, size_t NROW, size_t NCOL>
+  Matrix<T, NROW - 1, NCOL - 1> Matrix<T, NROW, NCOL>::minor(const int row, const int col) const
+  {//去掉行列组成新矩阵
+    Matrix<T, NROW - 1, NCOL - 1> ret;
+    for (int i = NROW - 1; i--; )
+      for (int j = NCOL - 1; j--; ret.m[i][j] = m[i < row ? i : i + 1][j < col ? j : j + 1]);
+    return ret;
+  }
+
+  template<typename T, size_t NROW, size_t NCOL>
+  Matrix<T, NROW, NCOL> Matrix<T, NROW, NCOL>::adjugate() const
+  {//每个位置变为该位置的代数余子式，所得到的矩阵转置便是伴随
+    assert(NROW == NCOL);
+    Matrix<T, NROW, NCOL> adj;
+    for (int i = NROW; i--; )
+      for (int j = NCOL; j--; adj.m[i][j] = cofactor(i, j));
+    return adj.transpose();
+  }
+
+  template<typename T, size_t NROW, size_t NCOL>
+  Matrix<T, NROW, NCOL> Matrix<T, NROW, NCOL>::inverse()
+  {
+    Matrix<T, NROW, NCOL> ret = adjugate();
+    double invdet = 1.f/det();
+    return ret * invdet;
+  }
+
+  template<typename T, size_t NROW, size_t NCOL>
+  Matrix<T, NROW, NCOL> Matrix<T, NROW, NCOL>::inverse_transpose()
+  {
+    return inverse().transpose();
+  }
+```
+### About the Blin-Phong model
+I have previously written related articles about the blin-Phong model, if you are interested, please click: <a href="https://zhuanlan.zhihu.com/p/452570902" target="_blank">计算机图形学 入门篇 5. 着色 I（Surface Shading）</a>The core difference between this model and Phong reflection model is that the half-way vector H greatly reduces the computation. <br>
+<img width="600" alt="zhihu" src="https://user-images.githubusercontent.com/74391884/164402867-7e097410-e480-49af-b650-ce0a176cb6ef.png"><br>
+Here is the render result:<br>
+<img width="600" alt="theface" src="https://user-images.githubusercontent.com/74391884/164403081-905fc51b-99b4-4100-ae1d-edddc12de483.png"><br>
+### About the Shadow Mapping
+The idea of a shadow map is to render from the point of view of light source, so that everything you can see is illuminated and everything you can't see is in shadow.
+Firstly, render the scene with view and projection transformations based on the position of the light source. The main purpose of this step is to store the depth values in the texture, which is called the shadow map (also called the depth map). Save both the view matrix and the projection matrix, which can transform any position into the view space of the light source. The depth value sampled from the depth map. It is the depth of the first object seen from the light source, which is a key to determine if an object is in shadow.
+Secondly, rendering from the view of camera. Before coloring each segment, transform the position of the object's vertices in the world coordinates to the view space of the light source. Transform to the vertex in the light source space and perform perspective division to get the NDC coordinates in the light source space. The actual depth value of the vertex in the NDC space is then compared with the corresponding depth value in the depth map. If the depth value is greater than the depth value in the map, the point is in shadow.
+![image](https://user-images.githubusercontent.com/74391884/164478689-6dc70e2a-795c-4bba-8ae2-d3d33c969cca.png)<br>
+### About the code:
+In the code section, I interpolate the vertices in the saved space to get the current fragment. This method avoids the calculation of inverse matrices, which convert points on the screen back into space. After the point in world space is transformed into the light source space, the z value is calculated to judge whether the point has a shadow. 
+```
+TGAColor PhongShader::framebuffer(Vector3f& Barycentric, Vex& vex)
+{
+	Vector3f p = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, vex.world_coords[0], vex.world_coords[1], vex.world_coords[2], 1);
+
+	Vector4f shadow_p = MS_view * Vector4f { p[0], p[1], p[2], 1.f };
+
+	int idx = (int)(shadow_p[0]/shadow_p.w) + (int)(shadow_p[1]/shadow_p.w) * width;
+
+	float shadow = .3 + 0.7 * (shadowbuffer[idx] + 0.3 > shadow_p[2]); //0.3用来解决z-fighting问题
+
+	Vector2f* tex = vex.texture_coords;
+	Vector3f* normal = vex.normal_coords;
+	Vector2f tex_coords = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, tex[0], tex[1], tex[2], 1);
+	Vector3f N = interpolate(Barycentric.x, Barycentric.y, Barycentric.z, normal[0], normal[1], normal[2], 1);
+	//fragment shader
+	vex.set_TBN(N);
+	TGAColor tex_color = model->diffuse(tex_coords);
+	Vector3f n = model->normal(tex_coords);
+	n.normalize();
+	n = (vex.TBN * n).normalize();
+	/*Vector3f r = (n * (n * light_dir * 2.f) - light_dir).normalize(); 这里是Phong反射模型，逐点计算了出射方向r，没有必要*/
+	Vector3f h = (eye_pos + light_dir).normalize(); //直接计算半程向量为Blin-Phong模型
+	float spec = pow(std::max(n*h, 0.0f), model->specular(tex_coords));
+	float diff = std::max(0.f, n * light_dir);
+
+	for (int i = 0; i < 3; i++) tex_color[i] = std::min<float>( 5 + tex_color[i]* shadow * (1.2 * diff + .6 * spec), 255);
+	return tex_color;
+};
+```
+You'll notice that there are a number of parameters, some of which are tweaked to get a better image. But 'shadowbuffer[idx] + 0.3' is intended to solve the Z-fighting problem.<br>
+<img width="600" src="https://user-images.githubusercontent.com/74391884/164478769-14c87626-3665-4b78-b3b8-ae73c47aaa17.png"><br>
+After simple adjustment can get good shadow effect:<br>
+![image](https://user-images.githubusercontent.com/74391884/164478946-8f616db0-5bde-4dc7-a6ac-3c0f3d876fcd.png)<br>
+![image](https://user-images.githubusercontent.com/74391884/164479383-01eab4ff-f867-4fe1-981b-4d07ac0b9feb.png)<br>
 
 ## Commit 6 : TBN matrix and Bumping Mapping
 
@@ -19,6 +176,7 @@ Moreover, regarding the TBN matrix, which I have to say is a difficult piece of 
 	<tr>
       <td align="left">
       <ul>
+	      	geometry.h<br>
                 Vex.h<br>
                 shader.h/cpp<br>
 	    	</ul>
@@ -28,8 +186,8 @@ Moreover, regarding the TBN matrix, which I have to say is a difficult piece of 
 	    		<li><b> Update Function:</b>
                 <li><b>geometry.h</b>
                 <ul>
-                  <li>inline Matrix<T, NROW, NCOL2> operator*(const Matrix<T, NROW, NCOL>&m ,const Matrix<T, NCOL, NCOL2>& mcpy);
-                  <li>inline Vector<T, NROW> operator*(const Matrix<T, NROW, NCOL>&m ,const Vector<T, NCOL>& v);
+                  <li>inline Matrix&ltT, NROW, NCOL2> operator*(const Matrix&ltT, NROW, NCOL>&m ,const Matrix&ltT, NCOL, NCOL2>& mcpy);
+                  <li>inline Vector&ltT, NROW> operator*(const Matrix&ltT, NROW, NCOL>&m ,const Vector&ltT, NCOL>& v);
                 </ul>
                 <li><b>Vex.h</b>: to store all information about a vertex</li>
                 <ul>
