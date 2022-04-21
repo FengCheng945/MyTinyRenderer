@@ -115,7 +115,8 @@ This submission mainly includes code optimization, shadow mapping and Blin-Phong
 ### About the Blin-Phong model
 I have previously written related articles about the blin-Phong model, if you are interested, please click: <a href="https://zhuanlan.zhihu.com/p/452570902" target="_blank">计算机图形学 入门篇 5. 着色 I（Surface Shading）</a>The core difference between this model and Phong reflection model is that the half-way vector H greatly reduces the computation. 
 ![image](https://user-images.githubusercontent.com/74391884/164402867-7e097410-e480-49af-b650-ce0a176cb6ef.png)<br>
-Here is the render result:
+<img width="600" alt="zhihu" src="https://user-images.githubusercontent.com/74391884/164402867-7e097410-e480-49af-b650-ce0a176cb6ef.png"><br>
+Here is the render result:<br>
 <img width="600" alt="theface" src="https://user-images.githubusercontent.com/74391884/164403081-905fc51b-99b4-4100-ae1d-edddc12de483.png"><br>
 ## Commit 6 : TBN matrix and Bumping Mapping
 
