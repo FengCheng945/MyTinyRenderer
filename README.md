@@ -6,7 +6,7 @@ This software rendering is my personal project following [the wiki](https://gith
 This document is a detailed review of the significant commits to this repository from the very beginning of the project.
 
 ## Commit 7 : Shadow Mapping and Blin-Phong Reflection model
-This submission mainly includes code optimization, shadow mapping and Blin-Phong Reflection model implementation. In terms of code optimization, I fixed some previous errors and abstracted fragment shader from the rasterization method as a function of vertex shader and moved perspective division from vertex shader to viewport transform. In addition, I implemented shadow mapping and blin-phong reflection models to make our rendering look more vivid. Since the previous GouraudShading method was completely abandoned by me, I renamed the whole category PhongShader.
+This submission mainly includes code optimization, shadow mapping and Blin-Phong Reflection model implementation. In terms of code optimization, I fixed some previous errors and abstracted fragment shader from the rasterization method as a function of vertex shader and moved perspective division from vertex shader to viewport transform. In addition, I implemented shadow mapping and blin-phong reflection models to make our rendering look more vivid. Since the previous GouraudShading method was completely abandoned by me, I renamed the whole category PhongShader. In terms of shadow, I created the Depth Shader, which inherits from the Phong Shader. It is mainly used to establish the shadowbuffer. 
 <b>To calculate the shadow map and normal matrix, I also added matrix inverse, determinant and adjoint matrix template method, suitable for any dimension matrix.</b>
 
 <table>
@@ -40,6 +40,8 @@ This submission mainly includes code optimization, shadow mapping and Blin-Phong
 	    		<li><b>class PhongShader :public Shader</b>: Build various shader methods
                     <ul>
                     <li>virtual TGAColor framebuffer(Vector3f& Barycentric, Vex& vex);
+		    <li>float* shadowbuffer = nullptr;
+                    <li>class DepthShader :public PhongShader;    
                     </ul>
 	    	</ul>
 	    </td>
