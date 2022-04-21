@@ -5,6 +5,48 @@ This software rendering is my personal project following [the wiki](https://gith
 ## Description
 This document is a detailed review of the significant commits to this repository from the very beginning of the project.
 
+## Commit 7 : Shadow Mapping and Blin-Phong Reflection model
+This submission mainly includes code optimization, shadow mapping and Blin-Phong Reflection model implementation. In terms of code optimization, I fixed some previous errors and abstracted fragment shader from the rasterization method as a function of vertex shader and moved perspective division from vertex shader to viewport transform. In addition, I implemented shadow mapping and blin-phong reflection models to make our rendering look more vivid. Since the previous GouraudShading method was completely abandoned by me, I renamed the whole category PhongShader.
+<b>To calculate the shadow map and normal matrix, I also added matrix inverse, determinant and adjoint matrix template method, suitable for any dimension matrix.</b>
+
+<table>
+  <tbody>
+    <tr>
+      <th align="center">file update</th>
+      <th align="center">Description</th>
+    </tr>
+	<tr>
+      <td align="left">
+      <ul>
+                geometry.h<br>
+                shader.h/cpp<br>
+	    	</ul>
+      </td>
+	    <td align="left">
+	    	<ul>
+	    		<li><b> Update Function:</b>
+                <li><b>geometry.h</b>
+                <ul>
+                  <li>Matrix&ltT, NROW, NCOL> transpose();
+                  <li>double det();
+                  <li>double cofactor(const int row, const int col) const;
+                  <li>Matrix&ltT, NROW-1, NCOL-1> minor(const int row, const int col) const;
+                  <li>Matrix&ltT, NROW, NCOL> adjugate() const;
+                  <li>Matrix&ltT, NROW, NCOL> inverse();
+                  <li>Matrix&ltT, NROW, NCOL> inverse_transpose();
+                  <li>template&lttypename T, size_t N> struct dt;
+                  <li>template&lttypename T> struct dt&ltT,1>;
+                </ul>
+	    		<li><b>class PhongShader :public Shader</b>: Build various shader methods
+                    <ul>
+                    <li>virtual TGAColor framebuffer(Vector3f& Barycentric, Vex& vex);
+                    </ul>
+	    	</ul>
+	    </td>
+	</tr>
+  </tbody>
+</table>
+
 ## Commit 6 : TBN matrix and Bumping Mapping
 
 This submission mainly includes code optimization, TBN matrix calculation, normal mapping and phong shading. In terms of code optimization, I found that there were a lot of previous problems with double counting, such as the three matrices in MVP transformation. So in this commit I abstracted that as member variables of gouraud shader to avoid double-counting. 
