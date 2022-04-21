@@ -47,6 +47,76 @@ This submission mainly includes code optimization, shadow mapping and Blin-Phong
   </tbody>
 </table>
 
+### About the new matrix multiplication
+```
+  //抽象行列式的原因是，要用偏特化来实现if(行列=1)的效果，因为if是在运行期间确定，所以不能和模板搭配使用
+  template<typename T, size_t N> struct dt
+  {
+    static double det(const Matrix<T, N, N>& src)
+    {
+      double ret = 0;
+      for (int i = N; i--; ret += src.m[0][i] * src.cofactor(0, i));
+      return ret;
+    }
+  };
+  template<typename T> struct dt<T,1>
+  {
+    static double det(const Matrix<T, 1, 1>& src)
+    {
+      return src.m[0][0];
+    }
+  };
+
+  template<typename T, size_t NROW, size_t NCOL>
+  double Matrix<T, NROW, NCOL>::det()
+  {//行列式计算公式：按任意一行展开并乘上对应位置的代数余子式
+    assert(NROW == NCOL);
+    return dt<T,NROW>::det(*this);
+  }
+  template<typename T, size_t NROW, size_t NCOL>
+  double Matrix<T, NROW, NCOL>::cofactor(const int row, const int col) const
+  {//代数余子式计算：去掉row行col列的矩阵的行列式，若该位置行列和为偶数就*-1
+
+    return minor(row, col).det() * ((row + col) % 2 ? -1 : 1);
+  }
+  template<typename T, size_t NROW, size_t NCOL>
+  Matrix<T, NROW - 1, NCOL - 1> Matrix<T, NROW, NCOL>::minor(const int row, const int col) const
+  {//去掉行列组成新矩阵
+    Matrix<T, NROW - 1, NCOL - 1> ret;
+    for (int i = NROW - 1; i--; )
+      for (int j = NCOL - 1; j--; ret.m[i][j] = m[i < row ? i : i + 1][j < col ? j : j + 1]);
+    return ret;
+  }
+
+  template<typename T, size_t NROW, size_t NCOL>
+  Matrix<T, NROW, NCOL> Matrix<T, NROW, NCOL>::adjugate() const
+  {//每个位置变为该位置的代数余子式，所得到的矩阵转置便是伴随
+    assert(NROW == NCOL);
+    Matrix<T, NROW, NCOL> adj;
+    for (int i = NROW; i--; )
+      for (int j = NCOL; j--; adj.m[i][j] = cofactor(i, j));
+    return adj.transpose();
+  }
+
+  template<typename T, size_t NROW, size_t NCOL>
+  Matrix<T, NROW, NCOL> Matrix<T, NROW, NCOL>::inverse()
+  {
+    Matrix<T, NROW, NCOL> ret = adjugate();
+    double invdet = 1.f/det();
+    return ret * invdet;
+  }
+
+  template<typename T, size_t NROW, size_t NCOL>
+  Matrix<T, NROW, NCOL> Matrix<T, NROW, NCOL>::inverse_transpose()
+  {
+    return inverse().transpose();
+  }
+```
+### About the Blin-Phong model
+I have previously written related articles about the blin-Phong model, if you are interested, please click: <a href="https://zhuanlan.zhihu.com/p/452570902" target="_blank">计算机图形学 入门篇 5. 着色 I（Surface Shading）</a>The core difference between this model and Phong reflection model is that the half-way vector H greatly reduces the computation. 
+![image](https://user-images.githubusercontent.com/74391884/164402867-7e097410-e480-49af-b650-ce0a176cb6ef.png)<br>
+Here is the render result:
+<img width="600" alt="theface" src="https://user-images.githubusercontent.com/74391884/164403081-905fc51b-99b4-4100-ae1d-edddc12de483.png"><br>
 ## Commit 6 : TBN matrix and Bumping Mapping
 
 This submission mainly includes code optimization, TBN matrix calculation, normal mapping and phong shading. In terms of code optimization, I found that there were a lot of previous problems with double counting, such as the three matrices in MVP transformation. So in this commit I abstracted that as member variables of gouraud shader to avoid double-counting. 
